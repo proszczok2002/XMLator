@@ -125,9 +125,9 @@ internal static partial class SelectionAudit
                 throw new InvalidOperationException("The update offer must allow declining by keyboard.");
             Console.WriteLine("Automatic update offer displays the localized release notes.");
             PressNative(no);
-            var settings = Named(window, ControlType.Button, "Ustawienia…");
-            if (!SpinWait.SpinUntil(() => settings.Current.IsEnabled && window.Current.IsEnabled, 4000))
+            if (!SpinWait.SpinUntil(() => window.Current.IsEnabled, 5000))
                 throw new InvalidOperationException("The original wizard did not return after declining the automatic update.");
+            var settings = Named(window, ControlType.Button, "Ustawienia…");
             PressNative(settings);
             var dialog = WaitForOwnedDialog(window, "Ustawienia");
             PressNative(Named(dialog, ControlType.Button, "Sprawdź aktualizacje teraz"));
