@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>Schneegans.Unattend</RootNamespace>
+    <AssemblyName>UnattendGenerator</AssemblyName>
+    <Nullable>enable</Nullable>
+    <InformationalVersion>1.0.0+c112aa81e5d35fe06b5c57f7fa09aeb112a9d456</InformationalVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="resource\*" />
+    <EmbeddedResource Include="LICENSE.txt" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+</Project>

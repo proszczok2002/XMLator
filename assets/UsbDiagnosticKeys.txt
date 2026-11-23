@@ -1,0 +1,25 @@
+A split image segment still exceeds the FAT32 limit.
+Access to the selected USB drive was lost.
+BIOS boot requires bootsect.exe with a valid Microsoft signature.
+Bootsect is missing from the ISO, Windows and ADK. Use UEFI or choose media that includes Bootsect.
+Choose a Windows Setup ISO with boot.wim and one install image set.
+Copy failed. {0}
+Could not read the WIM to find the UEFI loader. {0}
+Could not split the WIM. {0}
+Could not unmount the WIM. {0}
+Could not write the BIOS boot code. {0}
+FAT32 cannot hold a file larger than 4 GiB. Automatic splitting supports sources\install.wim.
+Move this file off the selected USB drive before formatting: {0}
+Move this file to a local disk: {0}
+The installation files exceed the FAT32 partition capacity.
+The ISO and the extra files have different contents at the same path: {0}.
+The ISO contains a file at the path of an extra folder: {0}.
+The ISO is missing the BIOS boot files.
+The ISO is missing the UEFI boot file {0}.
+The selected file is not the Bootsect tool.
+The selected USB drive is too small for Setup and the extra files.
+The selected USB drive was removed or its identity changed.
+The WIM is missing the UEFI boot file.
+USB copy failed verification: {0}.
+Windows could not apply the selected partition style to the USB drive.
+Windows did not clear all partitions from the USB drive.

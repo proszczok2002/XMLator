@@ -1,0 +1,16 @@
+bin/
+obj/
+dist/
+*.ini
+*.user
+/AGENTS.md
+/WORK_STATE.md
+/robocze/
+/niepotrzebne/
+*.iso
+*.wim
+*.esd
+*.swm
+*.exe
+*.vdi
+*.vbox

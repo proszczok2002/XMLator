@@ -1,0 +1,206 @@
+# XMLator
+
+## Polski
+
+[Pobierz XMLator.exe](https://github.com/proszczok2002/XMLator/releases/latest/download/XMLator.exe). To przenośny kreator dla Windows 10 lub 11 x64. Wygenerowanie pliku odpowiedzi odbywa się bez ISO, pliku WIM i połączenia z internetem. Windows docelowy i jego architekturę wybierasz niezależnie od systemu, na którym uruchamiasz XMLatora.
+
+W **Ustawieniach** możesz od razu sprawdzić aktualizacje albo włączyć sprawdzanie przy uruchamianiu. Domyślnie program sprawdza raz dziennie. Gdy nowe wydanie jest dostępne, zobaczysz opis zmian i pytanie o instalację. Po potwierdzeniu XMLator pobierze nowe EXE z GitHuba, zweryfikuje jego SHA-256 i uruchomi nową wersję. W razie nieudanego startu przywróci poprzednie EXE. Przycisk **Wsparcie i kontakt** na pierwszym ekranie prowadzi do GitHuba, strony autora, PayPal i Revolut.
+
+Na stronie **Edycja i klucz** we wszystkich systemach można wybrać **Pomiń pytanie o klucz instalacyjny**. XMLator zapisuje `WillShowUI=Never` i pozostawia pole klucza instalacyjnego poza XML. Wymagania nośnika nadal obowiązują. Niektóre obrazy wymagają pasującego klucza i mogą wtedy przerwać instalację. Oddzielnym ustawieniem jest klucz aktywacji. [Ustawienie ekranu klucza](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-setup-userdata-productkey-willshowui) [Dobór klucza przez instalator](https://learn.microsoft.com/en-us/troubleshoot/windows-server/licensing-and-activation/error-product-key-not-match-windows-images-installation)
+
+### Praca z kreatorem
+
+Na pierwszym ekranie wybierz docelowy system. Przycisk **Ustawienia…** otwiera osobne okno z językiem i motywem XMLatora. Dostępne są polski, niemiecki, angielski, rosyjski, chorwacki, francuski, hiszpański i chiński uproszczony. Ustawienie **Zgodny z językiem Windows** używa języka wyświetlania systemu, a dla pozostałych języków wybiera angielski. Motyw może być jasny, ciemny lub systemowy.
+
+W oknie **Ustawienia** wybierz **OK**, aby zastosować zmiany i zapisać je w `config.ini` obok EXE, albo **Anuluj**, aby wrócić do dotychczasowych ustawień. Możesz też używać menu **Język** i **Widok**. Język instalowanego Windows i jego motyw wybierasz osobno. Systemowe okna zapisu, wyboru plików i UAC korzystają z języka Windows.
+
+Polecenie **Obsługa klawiaturą** podaje skróty **Wstecz** i **Dalej** dla bieżącego języka. Lista stref czasowych używa nazw dopasowanych do języka kreatora i przesunięć UTC z Windows. [Strefy czasowe Windows](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/default-time-zones)
+
+W kroku **Język, region i komputer** wybierz język dostępny na pendrivie. Kreator od razu dopasuje klawiaturę, formaty i region. **Polski (Polska)** wybiera **Polski (programisty)** i Polskę, a angielski brytyjski dobiera układ Wielkiej Brytanii. Każde ustawienie możesz zmienić z listy, w tym dodać drugą i trzecią klawiaturę. [Domyślne układy klawiatur w Windows](https://learn.microsoft.com/windows-hardware/manufacture/desktop/default-input-locales-for-windows-language-packs)
+
+Konto tworzysz przyciskiem **Dodaj konto** i samodzielnie wybierasz jego uprawnienia. Po dodaniu lokalnego administratora lista **Pierwsze logowanie** pozwala wybrać jednorazowe logowanie na pierwsze dodane konto administratora. Podsumowanie pokazuje konto, które ma się zalogować. Możesz zostawić hasło puste, jeśli zasady instalowanego Windows na to pozwalają. Windows Server 2008 i 2008 SP2 wymagają złożonych haseł dla kont lokalnych. Dla tych wersji kreator zapyta o brakujące hasło przy zapisie XML albo tworzeniu pendrive’a. [Puste hasło w AutoLogon](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-shell-setup-autologon-password-value) [Hasła Windows Server 2008](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-shell-setup-useraccounts-administratorpassword)
+
+Po automatycznym pierwszym logowaniu plik odpowiedzi zeruje licznik i wyłącza `AutoAdminLogon`. W próbie z jednym kontem lokalnym bez hasła Windows 11 ponownie zalogował je po zimnym starcie przy obu wartościach ustawionych na zero. Informację o takim zachowaniu zobaczysz w podsumowaniu. [Licznik logowania](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-shell-setup-autologon-logoncount) [Ustawienie AutoAdminLogon](https://learn.microsoft.com/en-us/troubleshoot/windows-server/user-profiles-and-logon/turn-on-automatic-logon)
+
+W Windows 10/11 lista **Jak przeprowadzić pierwszą konfigurację Windows?** pozwala przejść przez standardowe ekrany, wybrać ekrany do pominięcia lub użyć jednego z dwóch wariantów z lokalnym administratorem. **Skonfiguruj bez internetu z kontem lokalnym** ukrywa ekrany sieci i konta Microsoft. **Pomiń obsługiwane ekrany konfiguracji** pomija też rejestrację u producenta i ekran ustawień zalecanych. [Automatyzacja pierwszej konfiguracji Windows](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/automate-oobe?view=windows-11)
+
+Samo pytanie o Wi-Fi możesz pominąć po wybraniu **Wybierz, które ekrany pominąć**. Gotowy profil sieci dodajesz w **Ustawieniach zaawansowanych → Sieć Wi-Fi i maszyny wirtualne**. W Windows 11 opcja **Udostępnij ręczną konfigurację bez internetu (BypassNRO)** dodaje wpis rejestru przed pierwszą konfiguracją. Na obsługiwanych kompilacjach opcja kontynuowania bez internetu pojawia się po odłączeniu sieci. Microsoft usuwa część starszych poleceń do ręcznej konfiguracji konta lokalnego. [Ekran Wi-Fi w dokumentacji Microsoftu](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-shell-setup-oobe-hidewirelesssetupinoobe) [Zmiany w Windows Insider](https://blogs.windows.com/windows-insider/2025/10/06/announcing-windows-11-insider-preview-build-26220-6772-dev-channel/)
+
+W oknie **Aplikacje i funkcje do usunięcia** każda aplikacja ma osobne pole wyboru. Zaznaczenie oznacza usunięcie, a odznaczenie oznacza zachowanie aplikacji. **Tab** i **Shift+Tab** przechodzą między aplikacjami, a **Spacja** zmienia zaznaczenie. Zestawy XMLatora pozostawiają Sklep i składniki mowy. Schneegans zwraca uwagę, że Sklep bywa trudny do przywrócenia, a standardowe przypięcia w menu Start Windows 11 mogą zostać po usuniętych aplikacjach. [Generator Schneegansa](https://schneegans.de/windows/unattend-generator/)
+
+Opcja **Przywróć pełne menu kontekstowe Eksploratora** w Windows 11 zapisuje dwa wpisy stosowane przy pierwszym logowaniu każdego użytkownika. Działanie zależy od kompilacji i aktualizacji Eksploratora. [Test dla kompilacji 26300.9974](https://github.com/TongenShen/win11-classic-context-menu#test-log)
+
+### Wybór edycji
+
+W kroku **Edycja i klucz** wybierz bezpośrednio z listy, na przykład **Home**, **Pro**, **Enterprise** lub **Education** dla Windows 10/11. Dla typowych nośników Server dostępne są warianty GUI, Server Core i Evaluation. Zwykły Windows Setup szuka na nośniku wewnętrznej nazwy obrazu zapisanej w XML. Nośnik musi zawierać wybraną edycję. Dla zmodyfikowanego lub mniej typowego nośnika możesz podać dokładną nazwę obrazu lub indeks.
+
+W alternatywnym trybie DISM dla Windows 10/11 skrypt WinPE wyszukuje obraz po identyfikatorze edycji, architekturze i kompilacji Windows. Brak dopasowania lub kilka dopasowań zatrzymuje ten skrypt przed partycjonowaniem. [Metadane obrazu w Windows Setup](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-setup-imageinstall-osimage-installfrom-metadata-key)
+
+### Obsługa klawiaturą
+
+- **Tab** i **Shift+Tab** przechodzą między polami. Strzałki zmieniają wybór, a **Spacja** zaznacza pole wyboru.
+- **Alt+D** przechodzi dalej, **Alt+W** wraca. Fokus trafia na pierwszą kontrolkę kroku, a jego nazwa jest w tytule okna.
+- **Ctrl+S** zapisuje plik XML, **Ctrl+Shift+S** zapisuje profil INI, **Ctrl+O** otwiera profil, a **Ctrl+End** przechodzi do podsumowania.
+- **Alt+F4** i inne polecenia zamknięcia pytają o potwierdzenie, jeśli masz niezapisane zmiany. Domyślny przycisk **Nie** wraca do edycji.
+- Przy przechodzeniu po polach czytnik otrzymuje nazwę pola i jego bieżącą wartość lub stan. Architektury wybierasz strzałkami na liście rozwijanej. Po planie partycji, podsumowaniu i wierszach XML poruszasz się strzałkami. Dymki pojawiają się po najechaniu myszą.
+
+### Profile i cele instalacji
+
+Jeśli chcesz ponownie użyć ustawień u kolejnego klienta, dodaj konto lokalne i zaznacz pytanie o nazwę przy generowaniu. W **Podsumowaniu** kliknij **Zapisz profil INI**. Po ponownym otwarciu profilu XMLator zapyta o nazwę przy tworzeniu XML lub pendrive’a. Zapis profilu proponuje `XMLator.ini` obok `XMLator.exe`. Możesz wybrać własną nazwę i folder. Hasła, klucze produktu, treść profilu Wi-Fi i nazwy kont oznaczone jako zmienne podaje się w sesji. Ścieżki do dołączonych plików są zapisywane w profilu. Po przeniesieniu EXE i profilu na inny komputer sprawdź dostępność tych plików.
+
+- Cele obejmują Windows Vista, Vista SP1 i SP2, Windows 7, Thin PC, 8, 8.1, 10 i 11. Lista serwerów zawiera Server 2008 i 2008 SP2, 2008 R2, 2012, 2012 R2, 2016, 2019, 2022 i 2025, wydania kanału 1709–20H2 i 23H2 oraz Microsoft Hyper-V Server. Windows Vista używa UEFI w wydaniach x64 z SP1 i SP2. [Windows AIK dla Vista SP1 i Server 2008](https://www.microsoft.com/en-us/download/details.aspx?id=9085)
+- Możesz ustawić własne konta, właściciela, organizację i grupę roboczą oraz dodawać składniki XML i pliki OEM. Windows 10 i 11 mają dodatkowe opcje Schneegansa, w tym ustawienia pierwszego uruchomienia i Wi-Fi, personalizację, usuwanie aplikacji i AppLocker. Zgodność zależy od edycji, kompilacji i używanego obrazu.
+- Windows 8 i 8.1 mają opcje pominięcia pytania o Wi-Fi i ukrycia ekranów logowania do konta Microsoft. Na Windows Server można opcjonalnie podać hasło wbudowanego Administratora przy eksporcie. Profil INI zapamiętuje wybór tej opcji, a hasło jest podawane do bieżącego pliku odpowiedzi. [Ustawienia Wi-Fi w OOBE](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-shell-setup-oobe-hidewirelesssetupinoobe) [Administrator Windows Server](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/enable-and-disable-the-built-in-administrator-account)
+
+### Dysk i metoda instalacji
+
+Na stronie **Dysk i partycje** wybierasz metodę oraz sprawdzasz podgląd operacji w fizycznej kolejności na dysku.
+
+**Cały dysk jako jedna aktywna partycja C** ustawia BIOS/MBR. Lista trybów rozruchu pojawia się tylko przy układzie, dla którego dostępne są oba tryby. Gdy metoda DISM wykrywa tryb automatycznie, podajesz jeden rozmiar partycji rozruchowej. [Partycje BIOS/MBR](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/configure-biosmbr-based-hard-drive-partitions) [Partycje UEFI/GPT](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/configure-uefigpt-based-hard-drive-partitions)
+
+Na polu rozmiaru wpisz liczbę w MiB i naciśnij **Tab**, aby ją zastosować. **Ctrl+A** zaznacza bieżącą liczbę, a strzałki w górę i w dół zmieniają ją o 1 MiB. Na przykład rozmiar 100 GiB wpisz jako `102400`.
+
+- **Microsoft Windows Setup** to standardowy instalator. Na głównej liście dostępne są ręczny wybór, instalacja na wskazanej partycji, formatowanie tylko tej partycji i tworzenie nowego układu. Opcja **Pozwól instalatorowi wybrać partycję na dowolnym dysku** jest w **Zaawansowanych ustawieniach Windows Setup**. Setup przeszukuje wszystkie dyski od dysku 0. Własny układ pozwala ustawić partycję C, WinRE, rozruch BIOS/UEFI oraz dodawać, zmieniać kolejność i usuwać partycje danych. Ostatnia partycja może zająć resztę dysku. Przy więcej niż czterech partycjach w MBR kreator używa kontenera partycji logicznych dla danych. [Automatyczny wybór partycji](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-setup-imageinstall-osimage-installtoavailablepartition) [Konfiguracja ponad czterech partycji BIOS/MBR](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/configure-more-than-four-partitions-on-a-biosmbr-based-hard-disk)
+- **Odzyskiwanie w UEFI/GPT.** Dla Windows 10/11 oraz systemów Server i Hyper-V od wersji 2016 standardowy Setup może utworzyć układ **EFI, MSR, C, WinRE** także z C zajmującą całe dostępne miejsce po zarezerwowaniu partycji pomocniczych. Polecenia DiskPart są osadzone w XML. Sprawdzają rozruch UEFI i odrzucają dysk wykryty jako nośnik instalacyjny lub dysk USB. Windows Setup nakłada obraz na przygotowaną partycję. Przy stałym rozmiarze C partycje danych znajdują się po WinRE. Plan na ekranie pokazuje kolejność właściwą dla wybranej wersji i trybu. [Zalecany układ WinRE](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/configure-uefigpt-based-hard-drive-partitions?view=windows-11#recovery-partition)
+- **Skrypt DISM Schneegansa** dostępny dla Windows 10/11 sam nakłada obraz i tworzy rozruch. Ma własny schemat z jedną dużą C oraz opcje ręcznego partycjonowania i własnego DiskPart. Przy włączonym WinRE umieszcza je za C.
+- **Mój skrypt CMD w Windows PE** powierza Twojemu skryptowi partycjonowanie, nałożenie obrazu i utworzenie rozruchu. Tę opcję stosuj po przygotowaniu własnego procesu wdrożenia.
+
+### Nośnik i eksport
+
+Polecenie **Zapisz XML** proponuje nazwę `Autounattend.xml`. Windows Setup szuka tej nazwy w katalogu głównym nośnika. Jeśli dodałeś sterowniki, pliki lub skrypty, możesz wybrać osobny folder dla struktury do skopiowania albo od razu przygotować pendrive. Zgoda na partycjonowanie w XML dotyczy dysku komputera, na którym później instalujesz Windows. Potwierdzisz ją na stronie dysku lub w podsumowaniu i ponownie po otwarciu profilu. [Kolejność wyszukiwania pliku odpowiedzi](https://learn.microsoft.com/windows-hardware/manufacture/desktop/windows-setup-automation-overview?view=windows-11)
+
+| Ścieżka na nośniku Windows Setup | Przeznaczenie |
+| --- | --- |
+| `Autounattend.xml` | Odpowiedzi dla instalatora |
+| `$WinPEDriver$` | Rozpakowane sterowniki INF dla Windows PE |
+| `sources\$OEM$\$1` | Pliki do skopiowania na partycję systemu |
+| `sources\$OEM$\$$\Setup\Scripts` | Skrypty `specialize`, `SetupComplete.cmd` i pierwszego logowania |
+
+W trybie DISM `$OEM$` i opcjonalny katalog pakietów `$WinPEPackage$` trafiają do katalogu głównego nośnika. W zwykłym instalatorze uruchomienie `SetupComplete.cmd` zależy od wersji i typu klucza. [Niestandardowe skrypty Windows Setup](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/add-a-custom-script-to-windows-setup?view=windows-11)
+
+### Bootowalny pendrive
+
+Przed wypakowaniem obrazu i prośbą o formatowanie XMLator odczytuje katalog edycji z `install.wim`, `install.esd` albo `install.swm`. Sprawdza wersję Windows, architekturę i wybraną edycję, nazwę lub indeks. W razie niezgodności podaje obrazy dostępne w ISO. Sam zapis XML działa bez ISO. [Metadane obrazu Windows](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-setup-imageinstall-osimage-installfrom-metadata)
+
+1. W **Podsumowaniu**, w sekcji **Zapis plików**, wybierz **Zapisz XML** lub **Zapisz profil INI**. Obie opcje są dostępne od razu.
+2. Aby przygotować nośnik, przejdź do sekcji **Pendrive instalacyjny** poniżej. Wybierz pendrive, potem wskaż lub pobierz ISO. Przycisk tworzenia uaktywnia się po wybraniu pendrive’a i istniejącego pliku ISO. Jeśli dostępne są dwa tryby rozruchu, wybierz tryb. Gdy układ partycji lub architektura narzuca tryb, kreator ustawia go automatycznie.
+3. Wybierz **Utwórz bootowalny pendrive** i zatwierdź monit administratora Windows. Po sprawdzeniu ISO, pojemności i tożsamości urządzenia podsumowanie pokaże dane pendrive’a oraz przyciski anulowania i potwierdzenia. Dopiero potwierdzenie uruchamia formatowanie. Kreator kopiuje pliki ISO wraz z dodatkami i umieszcza `Autounattend.xml` w katalogu głównym USB.
+
+Tytuł okna podaje numer i nazwę kroku albo stan bieżącej operacji. Pasek i tytuł aktualizują wartość z dokładnością do 1% przy wypakowywaniu ISO, kopiowaniu plików Windows i pobieraniu obrazu o znanym rozmiarze. Formatowanie, przygotowanie rozruchu i eksport XML z dodatkami pokazują etap i pasek bez wartości liczbowej. W standardowym oknie wyniku możesz wybrać **Zapisz kopię XML** lub **Zamknij**. W pytaniach skróty **Alt+T** i **Alt+N** wybierają Tak lub Nie. Potwierdzenie formatowania domyślnie wybiera Nie.
+
+XMLator odczytuje UDF lub ISO 9660 bez montowania wirtualnego napędu. Przed zapisem USB wypakowuje pliki do folderu tymczasowego Windows, który musi mieć odpowiednią ilość wolnego miejsca. Etykieta pendrive’a pochodzi z ISO i jest dopasowana do limitu systemu plików. [DiscUtils](https://github.com/DiscUtils/DiscUtils) [Limity etykiet](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setvolumelabela)
+
+Plik ISO możesz od razu wybrać z dysku. XMLator sprawdza źródła sieciowe w tle i dodaje je do listy **Źródło obrazu ISO** w miarę potwierdzania dostępności. Gdy pierwsza próba sprawdzenia Microsoftu nie zwróci obrazu, kreator automatycznie próbuje jeszcze raz. Przycisk **Odśwież źródła ISO** pozwala ponowić sprawdzenie później. Pobrany plik zapisuje się obok EXE i staje się wybranym obrazem dla pendrive’a.
+
+W katalogu **proszczok.pl** pełna nazwa obrazu zawiera oznaczenie języka, jeśli wydawca podał je w nazwie. Kreator obsługuje prefiksy takie jak `PL`, `HR`, `RU` i `en-US` oraz pliki bez prefiksu. Listę filtruje według wersji Windows i architektury. Dla plików bez oznaczenia architektury przyjmuje pierwszą architekturę obsługiwaną przez dany system w kreatorze. Wybierz obraz i użyj **Pobierz i użyj ISO**. [Katalog proszczok.pl](https://proszczok.pl/windows/)
+
+**Microsoft** udostępnia wieloedycyjne obrazy Home, Pro i Education. Kreator sprawdza publiczne formularze Windows 10 i 11 w Edge WebView2 oraz znane adresy Windows 11 25H2 dla x64 i ARM64. Wydanie pojawia się po sprawdzeniu nagłówka rzeczywistego obrazu dla architektury z kroku **System Windows**. [Microsoft Windows 10](https://www.microsoft.com/en-us/software-download/windows10ISO) [Microsoft Windows 11](https://www.microsoft.com/en-us/software-download/windows11) [Dokumentacja WebView2](https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/overview-features-apis)
+
+Podsumowanie wymienia dodatki do USB. Sterowniki WinPE trafiają do `$WinPEDriver$` w głównym katalogu nośnika, skąd obsługiwane wersje Windows Setup mogą je załadować po uruchomieniu instalatora. Sterowniki instalowanego systemu, pliki i skrypty OEM trafiają do `sources\$OEM$` w standardowym trybie lub do `$OEM$` w głównym katalogu nośnika w trybie DISM Schneegansa. W tym trybie folder `$WinPEPackage$` dostarcza pakiety CAB lub MSU dla instalowanego systemu. Własne składniki i osadzone skrypty trafiają do `Autounattend.xml`. Program sprawdza kopię tego pliku i każdego dodatku po zapisie. Sterowniki wymagane przed startem instalatora muszą już znajdować się w źródłowym `boot.wim`. [Sterowniki ładowane podczas Windows Setup](https://learn.microsoft.com/en-us/troubleshoot/windows-client/setup-upgrade-and-drivers/limitations-dollar-sign-winpedriver-dollar-sign)
+
+Windows Setup może pominąć `SetupComplete.cmd`, jeśli używa klucza OEM w klienckiej edycji innej niż Enterprise. Skrypty uruchamiane w fazie **Konfiguracja systemu (specialize)** mają oddzielny mechanizm. [Uruchamianie skryptów przez Windows Setup](https://learn.microsoft.com/en-gb/windows-hardware/manufacture/desktop/add-a-custom-script-to-windows-setup?view=windows-10)
+
+- **UEFI / GPT** używa partycji FAT32 o wielkości do 32 GiB. `install.wim` większy niż limit 4 GiB jest dzielony przez DISM. Dla pozostałych zbyt dużych plików, w tym `install.esd`, kreator zgłosi błąd przed formatowaniem. Jeśli starszy obraz x64 ma magazyn BCD UEFI i nie ma `bootx64.efi`, kreator szuka programu rozruchowego w `install.wim`. Po zapisie partycja EFI może nie mieć litery w Eksploratorze. [Pendrive Windows Setup i podział WIM](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/install-windows-from-a-usb-flash-drive?view=windows-11) [Procedura dla Server 2008 R2](https://cn.download.lenovo.com/ibmdl/pub/pc/pccbbs/thinkservers/how_to_create_usb_os_installation_media.pdf)
+- **BIOS / Legacy / MBR** używa aktywnej partycji NTFS i podpisanego przez Microsoft programu Bootsect z Windows, Windows ADK lub wybranego ISO. [Bootsect w dokumentacji Microsoftu](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/bootsect-command-line-options?view=windows-11)
+
+### Zgodność ustawień
+
+| System docelowy | Zakres i różnice |
+| --- | --- |
+| Windows Vista, Vista SP1/SP2 i Server 2008/2008 SP2 | Standardowy Windows Setup, konta, region, partycje i pliki OEM. W Vista opcja UEFI jest dostępna dla SP1/SP2 x64. Skrypty sterowników używają starszej składni PnPUtil. |
+| Windows 7, Thin PC, Server 2008 R2 i Server 2012/2012 R2 | Standardowy Windows Setup i starsza składnia PnPUtil. W Windows 7 x86 i Thin PC kreator stosuje BIOS/MBR. |
+| Windows 8 i 8.1 | Standardowy Windows Setup, starsza składnia PnPUtil i osobne opcje ekranów Wi-Fi i logowania do konta Microsoft w OOBE. |
+| Windows 10 | Opcje OOBE, Wi-Fi, aplikacji i DISM Schneegansa. Skrypt sterowników wybiera składnię PnPUtil dostępną w danej wersji. Składnia `/add-driver` jest dostępna od wersji 1607. |
+| Windows 11 | Opcje Windows 10/11, dodatkowe ustawienia Eksploratora i aplikacji oraz domyślny rozruch UEFI. Dostępność ekranów OOBE i aplikacji zależy od kompilacji. |
+| Server 2016, 2019, 2022 i 2025 | Standardowy Windows Setup, edycje Core i Desktop Experience. Lista dla Server 2025 uwzględnia nazwy obrazów Standard, Datacenter i Evaluation. |
+| Server 1709–20H2, 23H2 i Hyper-V Server | Kanały Server są dostępne jako cele Core. Hyper-V Server ma osobne cele i ustawienia serwerowe. |
+
+Możliwości XML w konkretnym obrazie można sprawdzić w Windows SIM. Na zmodyfikowanym ISO możesz wybrać pozycję **Dokładna nazwa obrazu** albo **Indeks obrazu**. [Dokumentacja składników pliku odpowiedzi](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/) [PnPUtil według wersji Windows](https://learn.microsoft.com/en-us/windows-hardware/drivers/devtest/pnputil-command-syntax) [Nazwy obrazów Server 2025](https://www.cisco.com/c/en/us/td/docs/unified_computing/ucs/ucs-director/bma-install-config/6-9/cisco-ucs-director-bma-install-config-guide-69/cisco-ucs-director-bma-install-config-guide-67_chapter_0111.html)
+
+## English
+
+[Download XMLator.exe](https://github.com/proszczok2002/XMLator/releases/latest/download/XMLator.exe). It is a standalone wizard for x64 Windows 10 and 11. It creates answer files locally for Windows Vista through Windows 11 and Windows Server 2008 through 2025, including the available channel and Hyper-V Server targets.
+
+In **Settings**, check for updates immediately or schedule checks at startup. The default is daily. When an update is available, the app displays the release notes and asks before installing. After confirmation, XMLator downloads the executable from GitHub, verifies its SHA-256 and restarts. If the new executable fails to start, the updater restores the previous version. **Support and contact** on the first screen links to GitHub, the author's website, PayPal and Revolut.
+
+The wizard starts with Windows version selection. Regional options use lists with readable language, country and keyboard names, including up to three layouts. Use **View** to choose a light, dark, or system theme for XMLator. On Windows 11, the dark theme uses native WinForms dark styling for standard controls. Windows file pickers follow the system theme. The installed Windows dark theme is a separate option.
+
+Add your own local accounts and choose their permissions. Once you add a local administrator, **First sign-in** offers one-time sign-in to the first administrator account you added. The review names that account. You can leave its password blank if the target Windows policy allows it. Windows Server 2008 and 2008 SP2 require complex passwords for local accounts. For those releases, the wizard asks for any missing account password when saving XML or creating USB media. [Blank AutoLogon password](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-shell-setup-autologon-password-value) [Windows Server 2008 password requirements](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-shell-setup-useraccounts-administratorpassword)
+
+After the first automatic sign-in, the answer file resets the count and disables `AutoAdminLogon`. In a test with one local account with no password, Windows 11 signed in again after a cold boot with both settings at zero. The review calls out this behavior. [Logon counter](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-shell-setup-autologon-logoncount) [AutoAdminLogon setting](https://learn.microsoft.com/en-us/troubleshoot/windows-server/user-profiles-and-logon/turn-on-automatic-logon)
+
+On Windows 10/11, use **How should initial Windows setup run?** to keep the standard screens or select the screens to skip. Adding a local administrator account enables two presets. **Set up without internet using a local account** hides the network and Microsoft account screens. **Skip the supported setup screens** also skips manufacturer registration and recommended settings. On supported Windows 11 builds, **Offer manual setup without internet (BypassNRO)** offers a manual path when the network is disconnected. [Automate OOBE](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/automate-oobe) [Windows Insider changes](https://blogs.windows.com/windows-insider/2025/10/06/announcing-windows-11-insider-preview-build-26220-6772-dev-channel/)
+
+In the app removal window, a checked app will be removed and an unchecked app will be kept. The XMLator presets keep Microsoft Store and speech features.
+
+Windows 8 and 8.1 have their own controls for the Wi-Fi and Microsoft account screens. On Windows Server you can set the built-in Administrator password on export. The INI profile records the choice, and the password is entered for each export. [Microsoft's built-in Administrator guidance](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/enable-and-disable-the-built-in-administrator-account)
+
+On **Edition and key**, select an edition such as **Home**, **Pro** or **Enterprise** directly. Windows Setup looks for the image by its standard internal name at installation time. An exact image name and index are available for custom media. In alternate DISM mode for Windows 10/11, WinPE matches the edition ID, architecture and build before partitioning.
+
+**Skip the setup product key prompt** is available for every target. It requests that Setup hide the key page and omits the installation key from XML. Media that requires a matching key may stop. Activation has its own setting. [Product key page setting](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-setup-userdata-productkey-willshowui)
+
+Use **Tab** and **Shift+Tab** to move between fields, arrow keys to select options or move through the partition plan, review and XML lines, and **Space** to toggle a checkbox. In English, **Alt+N** advances and **Alt+B** goes back. **Ctrl+S** saves the XML answer file, **Ctrl+Shift+S** saves an INI profile, **Ctrl+O** opens a profile, and **Ctrl+End** opens the review. Fields expose their name and value or state to screen readers. Focus moves to the first control on the page.
+
+On page one, open **Settings…** to choose the interface language and system, light or dark theme. The eight languages are Polish, German, English, Russian, Croatian, French, Spanish and Simplified Chinese. **Follow Windows language** uses the Windows display language when available and falls back to English. **OK** applies the changes and stores both preferences in `config.ini` beside the EXE. **Cancel** keeps the current settings. Windows file dialogs and UAC use the Windows display language. The installation profile contains the settings for the target system.
+
+To reuse a profile for different customers, add a local account, ask for its name on export and choose **Save INI profile** on **Review**. You can also ask for an account password. The save dialog proposes `XMLator.ini` next to `XMLator.exe`. A profile stores settings and file paths. After moving it to another computer, check that the paths are accessible. Product keys, passwords and WLAN profile XML apply to the current session. Custom scripts and XML markup are saved with the profile.
+
+Use **Disk and partitions** to preview the disk changes and choose Windows Setup, the DISM script from schneegans.de or your own CMD script. The single active C partition uses BIOS/MBR automatically. The boot mode list is available when the selected layout supports both modes. **Save XML** proposes `Autounattend.xml`. With drivers, folders or scripts, the wizard can export a separate folder structure or write the package directly to a USB drive. If you close the wizard with unsaved changes, choose **No** to return to editing.
+
+On **Review**, **Save files** contains **Save XML** and **Save INI profile**. The **Installation USB drive** group below asks for a USB drive first and a Windows ISO second. **Create a bootable USB drive** becomes available once you select a drive and an existing ISO. Approve the Windows administrator prompt. After checking the files and drive, XMLator shows the format confirmation in the wizard. UEFI/GPT uses FAT32 and splits an oversized WIM. BIOS/Legacy/MBR uses an active NTFS partition and Microsoft's signed Bootsect from Windows, the Windows ADK or the selected ISO. Both modes copy the Windows installation files, the answer file and any OEM payload. [Windows Setup USB media](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/install-windows-from-a-usb-flash-drive?view=windows-11) [Bootsect](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/bootsect-command-line-options?view=windows-11)
+
+A local ISO file can be selected immediately. The wizard checks online sources in the background and adds them to **ISO source** as they are confirmed. If the initial Microsoft check returns no image, the wizard retries once automatically. Choose **Refresh ISO sources** to check again later. The wizard saves the downloaded ISO next to its EXE and selects it for USB creation.
+
+Before extracting the ISO or asking to format the USB drive, the wizard reads the installation image catalog from `install.wim`, `install.esd` or `install.swm`. It checks the Windows version, architecture and selected edition, image name or index. The error message lists the images available on the media. Saving the answer file requires no ISO. [Windows image metadata](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-setup-imageinstall-osimage-installfrom-metadata)
+
+XMLator shows the full image names from **proszczok.pl**, including language prefixes such as `PL`, `HR`, `RU` and `en-US`. The catalog also accepts names without a language prefix. It filters files by Windows version and architecture. When a file name omits the architecture, XMLator uses the first supported architecture for that version of Windows. Choose a file and select **Download and use ISO**. [proszczok.pl catalog](https://proszczok.pl/windows/)
+
+**Microsoft** offers multi-edition Home, Pro and Education images. XMLator checks the public Windows 10 and 11 forms in Edge WebView2 and the known Windows 11 25H2 links for x64 and ARM64. Releases are shown once an ISO header has been verified for the architecture selected on the **Windows version** page. [Microsoft Windows 10](https://www.microsoft.com/en-us/software-download/windows10ISO) [Microsoft Windows 11](https://www.microsoft.com/en-us/software-download/windows11)
+
+The USB action includes the answer file and the extras listed in the review. Windows PE drivers go in `$WinPEDriver$`, where supported versions of Windows Setup can load them after Setup starts. Drivers needed before Setup starts must already be in the source `boot.wim`. Installed-system drivers, files and OEM scripts go in the OEM folder for the selected installation method. DISM mode also supports CAB or MSU packages for installed Windows. Custom components and embedded scripts travel inside the XML. XMLator verifies each extra file after copying it to USB. [How Windows Setup loads Windows PE drivers](https://learn.microsoft.com/en-us/troubleshoot/windows-client/setup-upgrade-and-drivers/limitations-dollar-sign-winpedriver-dollar-sign)
+
+The window title shows the current step or operation. The title and progress bar update in one-percentage-point increments for ISO extraction, USB copying and downloads of known size. Downloads go next to `XMLator.exe`. When the USB drive is ready, choose **Close** or **Save an XML copy**. The dialog can also remove the ISO downloaded during that session. Use **Alt+Y** for Yes and **Alt+N** for No. XMLator extracts UDF or ISO 9660 files to a temporary folder without mounting a virtual drive and carries over the ISO volume label within the destination file-system limit. [DiscUtils](https://github.com/DiscUtils/DiscUtils) [Volume label limits](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-setvolumelabela)
+
+Windows 10/11 have additional first-run, Wi-Fi, app removal and DISM options. The Windows 10 driver script detects support for modern PnPUtil syntax. Vista through 8.1 and early Server targets use the standard Windows Setup flow and legacy PnPUtil. Server 2025 uses media names for Core, Desktop Experience and Evaluation; the Server channel targets expose Core images. Check components for a specific installation image in Windows SIM. [Unattended Setup reference](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/)
+
+In a partition size field, type the size in MiB and press **Tab** to apply it. **Ctrl+A** selects the current number, and the **Up** and **Down** arrow keys adjust it by 1 MiB.
+
+## Build and verification
+
+Use .NET 10 SDK on Windows.
+
+```powershell
+dotnet run --project tests\XMLator.Checks.csproj -c Release
+dotnet run --project tests\XMLator.Checks.csproj -c Release -- --tooltip-audit
+dotnet publish -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false -o dist
+dotnet run --project tests\XMLator.Checks.csproj -c Release -- --selection-audit dist\XMLator.exe
+dotnet run --project tests\XMLator.Checks.csproj -c Release -- --interface-audit
+dotnet run --project tests\XMLator.Checks.csproj -c Release -- --preferences-ui dist\XMLator.exe
+dotnet run --project tests\XMLator.Checks.csproj -c Release -- --sign-in-ui dist\XMLator.exe
+dotnet run --project tests\XMLator.Checks.csproj -c Release -- --sign-in-prompts-audit
+dotnet run --project tests\XMLator.Checks.csproj -c Release -- --dialog-audit Dark
+dotnet run --project tests\XMLator.Checks.csproj -c Release -- --microsoft-audit
+dotnet run --project tests\XMLator.Checks.csproj -c Release -- --proszczok-catalog-audit
+```
+
+The local tests cover target and partition layouts, the XML schema, profile migration, XML and OEM export, and names and state changes exposed through UI Automation and MSAA. The first sign-in tests compare the XML saved directly with the XML staged for USB for every catalogued edition and architecture. The portable EXE export is tested in eight languages and three themes. USB tests use a simulated disk and verify confirmation, device identity, file copy and UEFI/BIOS paths. ISO tests cover approved HTTPS redirects, incomplete downloads and the download catalog. Windows SIM validates an answer file against a specific Windows image. [Validate an answer file in Windows SIM](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/wsim/validate-an-answer-file)
+
+## Sources and license
+
+- [Microsoft Unattended Windows Setup Reference](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/)
+- [Microsoft guide to automating Windows Setup](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/automate-windows-setup?view=windows-11)
+- [Microsoft UEFI/GPT partition guidance](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/configure-uefigpt-based-hard-drive-partitions?view=windows-11)
+- [Microsoft BIOS/MBR partition guidance](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/configure-biosmbr-based-hard-drive-partitions?view=windows-11)
+- [Microsoft Windows Server release and servicing information](https://learn.microsoft.com/en-us/windows-server/get-started/windows-server-release-info)
+- [Microsoft loading of an answer file from installation media](https://learn.microsoft.com/windows-hardware/manufacture/desktop/windows-setup-automation-overview?view=windows-11)
+- [Microsoft guidance on accessible WinForms control names and descriptions](https://learn.microsoft.com/en-us/dotnet/desktop/winforms/controls/provide-accessibility-information)
+- [Microsoft UI Automation requirements for combo boxes](https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-supportcomboboxcontroltype) and [NVDA handling of UI Automation values](https://github.com/nvaccess/nvda/blob/master/source/NVDAObjects/UIA/__init__.py).
+- [Microsoft OEM distribution shares and configuration sets](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/wsim/distribution-shares-and-configuration-sets-overview)
+- [Microsoft documentation for $WinPEDriver$](https://learn.microsoft.com/en-us/troubleshoot/windows-client/setup-upgrade-and-drivers/limitations-dollar-sign-winpedriver-dollar-sign)
+- [Microsoft keyboard layout and input method catalog](https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/windows-language-pack-default-values?view=windows-11)
+- [Microsoft reference for first-run recommended settings](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-shell-setup-oobe-protectyourpc)
+- [Microsoft reference for skipping device manufacturer registration](https://learn.microsoft.com/en-us/windows-hardware/customize/desktop/unattend/microsoft-windows-shell-setup-oobe-hideoemregistrationscreen)
+- [Christoph Schneegans’s generator](https://schneegans.de/windows/unattend-generator/) and [upstream library revision](https://github.com/cschneegans/unattend-generator/tree/c112aa81e5d35fe06b5c57f7fa09aeb112a9d456). XMLator extends its WinPE script with edition metadata lookup. The [upstream MIT license](vendor/Schneegans/LICENSE.txt) is included in the About dialog.
+- [DiscUtils](https://github.com/DiscUtils/DiscUtils) reads the ISO file system. See the [MIT license](vendor/DiscUtils-LICENSE.txt).
+- The release includes [third-party licenses and notices](THIRD-PARTY-NOTICES.txt). You can also save a copy from the About dialog inside XMLator. [Microsoft WebView2 SDK package](https://www.nuget.org/packages/Microsoft.Web.WebView2/1.0.4314.35)
+- Community examples include [My Digital Life’s Autounattend thread](https://forums.mydigitallife.net/threads/autounattend-xml.77755/), [its Unattend vs. Autounattend thread](https://forums.mydigitallife.net/threads/unattend-xml-and-autounattend-xml.10274/) and [ElevenForum’s setup and app integration discussion](https://www.elevenforum.com/t/windows-11-25h2-unattended-setup-app-integration-guide.46941/). Direct access to [rg-adguard](https://forum.rg-adguard.net/), [WinClub](https://winclub.pl/) and [WindowsMX](https://windowsmx.net/) was unavailable during research.
