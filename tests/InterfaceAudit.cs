@@ -26,6 +26,10 @@ internal static class InterfaceAudit
         var initial = new InterfacePreferences(path, CultureInfo.GetCultureInfo("pl-PL"));
         Require(initial.Language == "auto" && initial.EffectiveLanguage == "pl" && initial.Theme == AppTheme.System &&
             File.Exists(path), "Default config.ini follows the Windows UI language and theme.");
+        var now = DateTimeOffset.UtcNow;
+        Require(initial is { AutomaticUpdates: true, UpdateIntervalDays: 0 } && initial.ShouldCheckForUpdates(now),
+            "A new config enables update checks at every startup.");
+        initial.LastUpdateCheck = now;
         foreach (var (culture, language) in new (string, string)[]
         {
             ("pl-PL", "pl"), ("de-AT", "de"), ("en-GB", "en"), ("ru-RU", "ru"), ("hr-HR", "hr"),
@@ -37,6 +41,8 @@ internal static class InterfaceAudit
         initial.Save();
         var restarted = new InterfacePreferences(path, CultureInfo.GetCultureInfo("pl-PL"));
         Require(restarted.Language == "en" && restarted.Theme == AppTheme.Light, "Explicit settings survive restart on Polish Windows.");
+        Require(restarted.LastUpdateCheck == now && restarted.ShouldCheckForUpdates(now.AddSeconds(1)),
+            "The previous check does not postpone the next startup check.");
         restarted.Language = "zh-Hans";
         restarted.Theme = AppTheme.Dark;
         restarted.Save();
@@ -46,6 +52,8 @@ internal static class InterfaceAudit
         var recovered = new InterfacePreferences(path, CultureInfo.GetCultureInfo("es-ES"));
         Require(recovered.Language == "auto" && recovered.EffectiveLanguage == "es" && recovered.Theme == AppTheme.System,
             "Invalid entries fall back independently.");
+        Require(recovered is { AutomaticUpdates: true, UpdateIntervalDays: 0 },
+            "A config without an update schedule defaults to checking at every startup.");
         Require(!Directory.GetFiles(folder, "*.tmp").Any(), "Atomic config saves leave no temporary file.");
         Console.WriteLine("Config creation, Windows-language defaults, fallback, explicit choices and restart passed.");
     }

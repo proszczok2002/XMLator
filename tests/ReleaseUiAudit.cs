@@ -109,32 +109,48 @@ internal static partial class SelectionAudit
         Directory.CreateDirectory(folder);
         string exe = Path.Combine(folder, "XMLator.exe");
         string ini = Path.Combine(folder, "config.ini");
-        var preferences = new InterfacePreferences(ini) { Language = "pl", Theme = AppTheme.Dark, UpdateIntervalDays = 7 };
+        var lastCheck = DateTimeOffset.UtcNow.AddMinutes(-1);
+        var preferences = new InterfacePreferences(ini)
+        {
+            Language = "pl", Theme = AppTheme.Dark, UpdateIntervalDays = 0, LastUpdateCheck = lastCheck
+        };
         preferences.Save();
         File.Copy(older, exe);
         string hash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(reference)));
-        using var installed = Process.Start(exe)!;
+        Process? installed = null;
         Process? restarted = null;
         try
         {
+            using (var declined = Process.Start(exe)!)
+            {
+                try
+                {
+                    var initial = WaitForWizard(declined);
+                    var offer = WaitForOwnedDialog(initial, "Aktualizacja XMLatora", 30000);
+                    AssertNotes(offer);
+                    var no = Named(offer, ControlType.Button, "Nie");
+                    if (!no.Current.IsKeyboardFocusable)
+                        throw new InvalidOperationException("The update offer must allow declining by keyboard.");
+                    PressNative(no);
+                    if (!SpinWait.SpinUntil(() => initial.Current.IsEnabled, 5000))
+                        throw new InvalidOperationException("The original wizard did not return after declining the automatic update.");
+                    if (new InterfacePreferences(ini).LastUpdateCheck is not DateTimeOffset checkedAt || checkedAt <= lastCheck)
+                        throw new InvalidOperationException("The first startup did not save the time of the check.");
+                    if (!declined.CloseMainWindow() || !declined.WaitForExit(5000))
+                        throw new InvalidOperationException("Could not close XMLator after declining the update.");
+                    Console.WriteLine("The automatic offer appears after a recent check and allows declining.");
+                }
+                finally { CloseReleaseFixture(declined); }
+            }
+            installed = Process.Start(exe)!;
             var window = WaitForWizard(installed);
             var automatic = WaitForOwnedDialog(window, "Aktualizacja XMLatora", 30000);
             AssertNotes(automatic);
-            var no = Named(automatic, ControlType.Button, "Nie");
-            if (!no.Current.IsKeyboardFocusable)
-                throw new InvalidOperationException("The update offer must allow declining by keyboard.");
-            Console.WriteLine("Automatic update offer displays the localized release notes.");
-            PressNative(no);
-            if (!SpinWait.SpinUntil(() => window.Current.IsEnabled, 5000))
-                throw new InvalidOperationException("The original wizard did not return after declining the automatic update.");
-            var settings = Named(window, ControlType.Button, "Ustawienia…");
-            PressNative(settings);
-            var dialog = WaitForOwnedDialog(window, "Ustawienia");
-            PressNative(Named(dialog, ControlType.Button, "Sprawdź aktualizacje teraz"));
-            var manual = WaitForOwnedDialog(dialog, "Aktualizacja XMLatora", 30000);
-            AssertNotes(manual);
-            Console.WriteLine("Declining leaves the wizard open. The manual check offers the same update.");
-            PressNative(Named(manual, ControlType.Button, "Tak"));
+            Console.WriteLine("Reopening the app immediately offers the update again without opening Settings.");
+            var yes = Named(automatic, ControlType.Button, "Tak");
+            if (!yes.Current.IsKeyboardFocusable)
+                throw new InvalidOperationException("The update offer must allow accepting by keyboard.");
+            PressNative(yes);
             if (!installed.WaitForExit(65000))
                 throw new InvalidOperationException("The older app did not close to install the GitHub update.");
             if (!SpinWait.SpinUntil(() =>
@@ -144,11 +160,12 @@ internal static partial class SelectionAudit
             }, 20000))
                 throw new InvalidOperationException("XMLator did not restart after the GitHub update.");
             var updated = WaitForWizard(restarted!);
-            if (!updated.Current.Name.StartsWith($"{Wizard.ProductCaption} — ", StringComparison.Ordinal))
+            string productVersion = FileVersionInfo.GetVersionInfo(reference).ProductVersion!.Split('+', 2)[0];
+            if (!updated.Current.Name.StartsWith($"XMLator {productVersion} — ", StringComparison.Ordinal))
                 throw new InvalidOperationException("The updated executable does not expose its version in the title.");
             if (!SpinWait.SpinUntil(() => !Directory.GetFiles(folder, ".xmlator-update-*").Any(), 5000) ||
                 Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(exe))) != hash ||
-                new InterfacePreferences(ini) is not { EffectiveLanguage: "pl", Theme: AppTheme.Dark, UpdateIntervalDays: 7 })
+                new InterfacePreferences(ini) is not { EffectiveLanguage: "pl", Theme: AppTheme.Dark, AutomaticUpdates: true, UpdateIntervalDays: 0 })
                 throw new InvalidOperationException("The public update did not leave the exact new binary and saved settings.");
             PressNative(Named(updated, ControlType.Button, "Ustawienia…"));
             var currentSettings = WaitForOwnedDialog(updated, "Ustawienia");
@@ -156,7 +173,7 @@ internal static partial class SelectionAudit
             var latest = WaitForOwnedDialog(currentSettings, "XMLator", 30000);
             Named(latest, ControlType.Text, "Masz aktualną wersję XMLatora.");
             PressNative(Named(latest, ControlType.Button, "OK"));
-            Console.WriteLine($"Automatic offer and notes, No, manual check and Yes, real GitHub download, exact SHA-256 {hash}, restart, cleanup and latest-version result.");
+            Console.WriteLine($"Automatic Yes, real GitHub download, exact SHA-256 {hash}, restart, cleanup and latest-version result.");
         }
         finally
         {
@@ -165,7 +182,11 @@ internal static partial class SelectionAudit
                 CloseReleaseFixture(restarted);
                 restarted.Dispose();
             }
-            CloseReleaseFixture(installed);
+            if (installed is not null)
+            {
+                CloseReleaseFixture(installed);
+                installed.Dispose();
+            }
             Directory.Delete(folder, recursive: true);
         }
 

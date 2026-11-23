@@ -31,7 +31,7 @@ internal sealed class InterfacePreferences
     internal string EffectiveLanguage => Language == "auto" ? windowsLanguage : Language;
     internal AppTheme Theme { get; set; }
     internal bool AutomaticUpdates { get; set; } = true;
-    internal int UpdateIntervalDays { get; set; } = 1;
+    internal int UpdateIntervalDays { get; set; }
     internal DateTimeOffset? LastUpdateCheck { get; set; }
 
     internal bool ShouldCheckForUpdates(DateTimeOffset now) => AutomaticUpdates &&
