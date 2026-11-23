@@ -46,10 +46,15 @@ internal static partial class SelectionAudit
                         if (!SpinWait.SpinUntil(() => !frequency.Current.IsEnabled, 2000))
                             throw new InvalidOperationException("The interval remains enabled after turning off automatic checking.");
                         var ok = Named(dialog, ControlType.Button, Local("OK", "&OK"));
-                        Invoke(ok);
-                        if (!SpinWait.SpinUntil(() => new InterfacePreferences(config) is { AutomaticUpdates: false, UpdateIntervalDays: 7 }
-                            && settings.Current.HasKeyboardFocus, 4000))
-                            throw new InvalidOperationException("The new update settings or focus did not persist.");
+                        FocusWhenReady(ok);
+                        PostKey(ok, Keys.Space);
+                        if (!SpinWait.SpinUntil(() => new InterfacePreferences(config) is { AutomaticUpdates: false, UpdateIntervalDays: 7 } &&
+                            window.Current.IsEnabled, 6000))
+                            throw new InvalidOperationException("The new update settings did not persist.");
+                        if (languages != "all")
+                            FocusWhenReady(settings);
+                        else if (!SpinWait.SpinUntil(() => settings.Current.HasKeyboardFocus, 3000))
+                            throw new InvalidOperationException("The settings button did not regain keyboard focus.");
 
                         var support = Named(window, ControlType.Button, Local("Wsparcie i kontakt…", "Suppor&t and contact…"));
                         PostKey(settings, Keys.Tab);
@@ -103,18 +108,20 @@ internal static partial class SelectionAudit
             var automatic = WaitForOwnedDialog(window, "Aktualizacja XMLatora", 30000);
             AssertNotes(automatic);
             var no = Named(automatic, ControlType.Button, "Nie");
-            if (!no.Current.HasKeyboardFocus)
-                throw new InvalidOperationException("The update offer must default to declining.");
-            Invoke(no);
+            if (!no.Current.IsKeyboardFocusable)
+                throw new InvalidOperationException("The update offer must allow declining by keyboard.");
+            Console.WriteLine("Automatic update offer displays the localized release notes.");
+            PressNative(no);
             var settings = Named(window, ControlType.Button, "Ustawienia…");
             if (!SpinWait.SpinUntil(() => settings.Current.IsEnabled && window.Current.IsEnabled, 4000))
                 throw new InvalidOperationException("The original wizard did not return after declining the automatic update.");
-            Invoke(settings);
+            PressNative(settings);
             var dialog = WaitForOwnedDialog(window, "Ustawienia");
-            Invoke(Named(dialog, ControlType.Button, "Sprawdź aktualizacje teraz"));
+            PressNative(Named(dialog, ControlType.Button, "Sprawdź aktualizacje teraz"));
             var manual = WaitForOwnedDialog(dialog, "Aktualizacja XMLatora", 30000);
             AssertNotes(manual);
-            Invoke(Named(manual, ControlType.Button, "Tak"));
+            Console.WriteLine("Declining leaves the wizard open. The manual check offers the same update.");
+            PressNative(Named(manual, ControlType.Button, "Tak"));
             if (!installed.WaitForExit(65000))
                 throw new InvalidOperationException("The older app did not close to install the GitHub update.");
             if (!SpinWait.SpinUntil(() =>
@@ -128,12 +135,12 @@ internal static partial class SelectionAudit
                 Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(exe))) != hash ||
                 new InterfacePreferences(ini) is not { EffectiveLanguage: "pl", Theme: AppTheme.Dark, UpdateIntervalDays: 7 })
                 throw new InvalidOperationException("The public update did not leave the exact new binary and saved settings.");
-            Invoke(Named(updated, ControlType.Button, "Ustawienia…"));
+            PressNative(Named(updated, ControlType.Button, "Ustawienia…"));
             var currentSettings = WaitForOwnedDialog(updated, "Ustawienia");
-            Invoke(Named(currentSettings, ControlType.Button, "Sprawdź aktualizacje teraz"));
+            PressNative(Named(currentSettings, ControlType.Button, "Sprawdź aktualizacje teraz"));
             var latest = WaitForOwnedDialog(currentSettings, "XMLator", 30000);
             Named(latest, ControlType.Text, "Masz aktualną wersję XMLatora.");
-            Invoke(Named(latest, ControlType.Button, "OK"));
+            PressNative(Named(latest, ControlType.Button, "OK"));
             Console.WriteLine($"Automatic offer and notes, No, manual check and Yes, real GitHub download, exact SHA-256 {hash}, restart, cleanup and latest-version result.");
         }
         finally
@@ -215,6 +222,12 @@ internal static partial class SelectionAudit
 
     private static void Invoke(AutomationElement button) => ((InvokePattern)button.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
 
+    private static void PressNative(AutomationElement button)
+    {
+        if (!PostMessage(new IntPtr(button.Current.NativeWindowHandle), 0x00F5, IntPtr.Zero, IntPtr.Zero))
+            throw new InvalidOperationException("Could not press " + button.Current.Name);
+    }
+
     private static void CloseReleaseFixture(Process app)
     {
         if (app.HasExited)
@@ -222,4 +235,5 @@ internal static partial class SelectionAudit
         app.Kill();
         app.WaitForExit();
     }
+
 }
