@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Windows.Automation;
 using XMLator;
@@ -29,6 +30,8 @@ internal static partial class SelectionAudit
                     try
                     {
                         var window = WaitForWizard(process);
+                        if (!window.Current.Name.StartsWith($"{Wizard.ProductCaption} — ", StringComparison.Ordinal))
+                            throw new InvalidOperationException("The main window title does not include the display version.");
                         var settings = Named(window, ControlType.Button, Local("Ustawienia…", "&Settings…"));
                         settings.SetFocus();
                         if (!SpinWait.SpinUntil(() => settings.Current.HasKeyboardFocus, 2000))
@@ -62,26 +65,36 @@ internal static partial class SelectionAudit
                             throw new InvalidOperationException("Tab did not move from Settings to Support and contact.");
                         PostKey(support, Keys.Space);
                         var contact = WaitForOwnedDialog(window, Local("Wsparcie i kontakt", "Support and contact"));
+                        var contactHandle = new IntPtr(contact.Current.NativeWindowHandle);
+                        if (theme != AppTheme.System && !SystemInformation.HighContrast)
+                        {
+                            Color background = ReadDialogBackground(contactHandle);
+                            if (theme == AppTheme.Dark ? (background.ToArgb() & 0xFFFFFF) != 0x1C1D20 : background.GetBrightness() < 0.65)
+                                throw new InvalidOperationException($"Wrong support dialog background for {theme}: {background}.");
+                        }
                         string[] labels = [Local("Wesprzyj przez PayPal", "Support via &PayPal"),
                             Local("Wesprzyj przez Revolut", "Support via &Revolut"),
                             Local("Projekt na GitHubie", "Project on &GitHub"),
-                            Local("Strona autora", "Author’s &website")];
-                        var controls = contact.FindAll(TreeScope.Descendants, Condition.TrueCondition).Cast<AutomationElement>().ToArray();
-                        foreach (string label in labels)
+                            Local("Strona autora", "Author’s &website"), Local("Zamknij", "&Close")];
+                        var buttons = labels.Select(label => Named(contact, ControlType.Button, label)).ToArray();
+                        if (buttons.Any(button => !button.Current.IsKeyboardFocusable || button.Current.NativeWindowHandle == 0 ||
+                            button.Current.HelpText.Contains("https://", StringComparison.OrdinalIgnoreCase)))
+                            throw new InvalidOperationException("All support actions must be native, keyboard-focusable buttons without a URL in their help.");
+                        var dialogText = contact.FindAll(TreeScope.Descendants, Condition.TrueCondition).Cast<AutomationElement>();
+                        if (dialogText.Any(control => control.Current.Name.Contains("https://", StringComparison.OrdinalIgnoreCase)))
+                            throw new InvalidOperationException("A URL is exposed in the support dialog.");
+                        for (int i = 0; i < buttons.Length; i++)
                         {
-                            var link = controls.FirstOrDefault(element => element.Current.ControlType == ControlType.Button &&
-                                element.Current.IsKeyboardFocusable && element.Current.Name.StartsWith(label, StringComparison.Ordinal));
-                            if (link is null)
-                                throw new InvalidOperationException("Missing accessible command link for " + label + ". Observed: " +
-                                    string.Join(" | ", controls.Select(control => $"{control.Current.ControlType.ProgrammaticName} {control.Current.Name}")));
+                            var button = buttons[i];
+                            if (!SpinWait.SpinUntil(() => button.Current.HasKeyboardFocus, 2500))
+                                throw new InvalidOperationException("Tab order or initial keyboard focus is wrong at " + labels[i]);
                             if (languages != "all")
-                            {
-                                FocusWhenReady(link);
                                 Thread.Sleep(280);
-                            }
+                            PostKey(button, i + 1 < buttons.Length ? Keys.Tab : Keys.Escape);
                         }
-                        Invoke(Named(contact, ControlType.Button, Local("Zamknij", "&Close")));
-                        Console.WriteLine($"{locale} {theme}: native settings checkbox, interval, manual button, focus and four support links.");
+                        if (!SpinWait.SpinUntil(() => !IsWindow(contactHandle) && support.Current.HasKeyboardFocus, 3500))
+                            throw new InvalidOperationException("Escape did not close Support and return focus to its button.");
+                        Console.WriteLine($"{locale} {theme}: versioned title, accessible settings, themed support buttons without URLs, Tab and Escape.");
                     }
                     finally { CloseReleaseFixture(process); }
                 }
@@ -131,6 +144,8 @@ internal static partial class SelectionAudit
             }, 20000))
                 throw new InvalidOperationException("XMLator did not restart after the GitHub update.");
             var updated = WaitForWizard(restarted!);
+            if (!updated.Current.Name.StartsWith($"{Wizard.ProductCaption} — ", StringComparison.Ordinal))
+                throw new InvalidOperationException("The updated executable does not expose its version in the title.");
             if (!SpinWait.SpinUntil(() => !Directory.GetFiles(folder, ".xmlator-update-*").Any(), 5000) ||
                 Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(exe))) != hash ||
                 new InterfacePreferences(ini) is not { EffectiveLanguage: "pl", Theme: AppTheme.Dark, UpdateIntervalDays: 7 })
@@ -158,7 +173,7 @@ internal static partial class SelectionAudit
         {
             var names = dialog.FindAll(TreeScope.Descendants, Condition.TrueCondition).Cast<AutomationElement>()
                 .Select(item => item.Current.Name);
-            if (!names.Any(name => name.Contains("Co się zmieniło", StringComparison.Ordinal) && name.Contains("proszczok.pl", StringComparison.Ordinal)))
+            if (!names.Any(name => name.Contains("Co się zmieniło", StringComparison.Ordinal) && name.Contains("• ", StringComparison.Ordinal)))
                 throw new InvalidOperationException("The public release notes are missing from the Polish update dialog.");
         }
     }
@@ -220,7 +235,25 @@ internal static partial class SelectionAudit
             throw new InvalidOperationException("Could not focus " + element.Current.Name);
     }
 
-    private static void Invoke(AutomationElement button) => ((InvokePattern)button.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
+    private static Color ReadDialogBackground(IntPtr window)
+    {
+        using var bitmap = new Bitmap(8, 8);
+        using var graphics = Graphics.FromImage(bitmap);
+        graphics.Clear(Color.Magenta);
+        var dc = graphics.GetHdc();
+        try
+        {
+            const uint clientOnly = 1;
+            if (!PrintWindow(window, dc, clientOnly))
+                throw new InvalidOperationException("Could not render the support dialog for the theme test.");
+        }
+        finally { graphics.ReleaseHdc(dc); }
+        return bitmap.GetPixel(2, 2);
+    }
+
+    [DllImport("user32.dll", ExactSpelling = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool PrintWindow(IntPtr window, IntPtr deviceContext, uint flags);
 
     private static void PressNative(AutomationElement button)
     {

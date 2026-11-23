@@ -318,7 +318,7 @@ internal static partial class SelectionAudit
                         File.ReadAllText(config) != initial)
                         throw new InvalidOperationException("The choices should be accessible and pending until OK.");
                     Dismiss(window, settings, "OK", UiText.Get(locale, "&OK").Replace("&", ""));
-                    if (!SpinWait.SpinUntil(() => window.Current.Name == "XMLator — Step 1 of 9. Windows version" &&
+                    if (!SpinWait.SpinUntil(() => window.Current.Name == $"{Wizard.ProductCaption} — Step 1 of 9. Windows version" &&
                         File.ReadAllText(config).Contains("Language=en") && File.ReadAllText(config).Contains("Theme=dark") &&
                         SettingsHasFocus(window, "en"), 6000))
                         throw new InvalidOperationException("OK did not apply both settings or return focus to Settings.");
@@ -334,7 +334,7 @@ internal static partial class SelectionAudit
                 {
                     var window = AutomationElement.FromHandle(app.MainWindowHandle);
                     var (settings, selector, theme) = OpenSettings(window, "en");
-                    if (window.Current.Name != "XMLator — Step 1 of 9. Windows version" ||
+                    if (window.Current.Name != $"{Wizard.ProductCaption} — Step 1 of 9. Windows version" ||
                         ReadValue(selector) != "English" || ReadValue(theme) != "Dark")
                         throw new InvalidOperationException("A fresh process did not restore both preferences.");
                     Dismiss(window, settings, "Cancel", "Cancel");
@@ -526,7 +526,8 @@ internal static partial class SelectionAudit
             try
             {
                 window = AutomationElement.FromHandle(app.MainWindowHandle);
-                return window.Current.Name.StartsWith("XMLator — ", StringComparison.Ordinal);
+                return window.Current.Name.StartsWith("XMLator ", StringComparison.Ordinal) &&
+                    window.Current.Name.Contains("— ", StringComparison.Ordinal);
             }
             catch (ElementNotAvailableException) { return false; }
         }, 10000))

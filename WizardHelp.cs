@@ -67,7 +67,7 @@ internal sealed partial class Wizard
         var selected = TaskDialog.ShowDialog(this, new TaskDialogPage
         {
             Caption = L("O programie XMLator", "About XMLator"),
-            Heading = $"XMLator {typeof(Wizard).Assembly.GetName().Version?.ToString(3)}",
+            Heading = ProductCaption,
             Text = L("Kreator plików odpowiedzi Windows. Korzysta z DiscUtils i Schneegans Unattend.",
                 "Windows answer file wizard powered by DiscUtils and Schneegans Unattend."),
             Expander = new TaskDialogExpander

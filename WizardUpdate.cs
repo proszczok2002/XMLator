@@ -177,27 +177,32 @@ internal sealed partial class Wizard
 
     private void ShowSupport()
     {
-        var close = new TaskDialogCommandLinkButton(L("&Zamknij", "&Close"));
-        var page = new TaskDialogPage
+        using var dialog = new Form
         {
-            Caption = L("Wsparcie i kontakt", "Support and contact"), AllowCancel = true, DefaultButton = close,
-            Buttons =
-            {
-                SupportLink(L("Wesprzyj przez &PayPal", "Support via &PayPal"), "https://paypal.me/proszczok"),
-                SupportLink(L("Wesprzyj przez &Revolut", "Support via &Revolut"), "https://revolut.me/r_rosiejka"),
-                SupportLink(L("Projekt na &GitHubie", "Project on &GitHub"), UpdateService.Repository),
-                SupportLink(L("&Strona autora", "Author’s &website"), "https://proszczok.pl/"),
-                close
-            }
+            Text = L("Wsparcie i kontakt", "Support and contact"),
+            StartPosition = FormStartPosition.CenterParent, ShowInTaskbar = false,
+            FormBorderStyle = FormBorderStyle.FixedDialog, MinimizeBox = false, MaximizeBox = false,
+            AutoScaleMode = AutoScaleMode.Dpi, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            MinimumSize = new Size(320, 0), Font = Font
         };
-        TaskDialog.ShowDialog(this, page);
-    }
+        var fields = new Fields();
+        var first = Destination(L("Wesprzyj przez &PayPal", "Support via &PayPal"), "https://paypal.me/proszczok");
+        Destination(L("Wesprzyj przez &Revolut", "Support via &Revolut"), "https://revolut.me/r_rosiejka");
+        Destination(L("Projekt na &GitHubie", "Project on &GitHub"), UpdateService.Repository);
+        Destination(L("&Strona autora", "Author’s &website"), "https://proszczok.pl/");
+        var close = fields.Button(L("&Zamknij", "&Close"));
+        close.DialogResult = DialogResult.Cancel;
+        dialog.Controls.Add(fields.Table);
+        dialog.CancelButton = close;
+        dialog.ActiveControl = first;
+        ApplyTheme(dialog);
+        dialog.ShowDialog(this);
 
-    private TaskDialogCommandLinkButton SupportLink(string label, string address)
-    {
-        var button = new TaskDialogCommandLinkButton(label, address) { AllowCloseDialog = false };
-        button.Click += (_, _) => Run(() => Process.Start(new ProcessStartInfo(address) { UseShellExecute = true })?.Dispose());
-        return button;
+        Button Destination(string label, string address) => fields.Button(label, () =>
+        {
+            try { Process.Start(new ProcessStartInfo(address) { UseShellExecute = true })?.Dispose(); }
+            catch (Exception error) { Error(error, dialog); }
+        });
     }
 
     [DllImport("user32.dll")]

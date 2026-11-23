@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
 using System.Windows.Forms.Automation;
@@ -7,6 +8,8 @@ namespace XMLator;
 internal sealed partial class Wizard : Form
 {
     private static readonly Icon ApplicationIcon = new(typeof(Wizard), "ApplicationIcon.ico");
+    internal static string ProductCaption { get; } = "XMLator " +
+        typeof(Wizard).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion.Split('+', 2)[0];
 
     private static readonly (string Pl, string En)[] Steps =
     [
@@ -51,7 +54,7 @@ internal sealed partial class Wizard : Form
         this.preferences = preferences ?? new InterfacePreferences();
         this.updates = updates;
         profile = new SetupProfile();
-        Text = "XMLator";
+        Text = ProductCaption;
         Icon = ApplicationIcon;
         Font = new Font("Segoe UI", 10);
         heading.Font = new Font(Font, FontStyle.Bold);
@@ -218,7 +221,7 @@ internal sealed partial class Wizard : Form
         LF($"Krok {step + 1} z {Steps.Length}. {Steps[step].Pl}",
             $"Step {step + 1} of {Steps.Length}. {UiText.Get(UiLanguage, Steps[step].En)}");
 
-    private void SetHeading(string message) => Text = $"XMLator — {message}";
+    private void SetHeading(string message) => Text = $"{ProductCaption} — {message}";
 
     private void ShowStep(bool focus = true)
     {

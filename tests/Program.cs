@@ -996,7 +996,7 @@ internal static class Checks
         wizard.Show();
         Application.DoEvents();
         Assert(wizard.IsHandleCreated && wizard.Visible, "Wizard opens an actual WinForms window");
-        Assert(heading.Text == "Step 1 of 9. Windows version" && wizard.Text == $"XMLator — {heading.Text}" &&
+        Assert(heading.Text == "Step 1 of 9. Windows version" && wizard.Text == $"{Wizard.ProductCaption} — {heading.Text}" &&
             Descendants(wizard).OfType<ComboBox>().Single(combo => combo.AccessibleName == "Installation image architecture").Text == "x64 (AMD64)",
             "Start the wizard with the selected architecture exposed as a list value");
         ((Button)next.GetValue(wizard)!).PerformClick();
@@ -1012,7 +1012,7 @@ internal static class Checks
             {
                 switchLanguage.Invoke(wizard, [polish ? "pl" : "en"]);
                 render.Invoke(wizard, [false]);
-                Assert(wizard.Text == $"XMLator — {heading.Text}", "Expose the current localized step in the window title");
+                Assert(wizard.Text == $"{Wizard.ProductCaption} — {heading.Text}", "Expose the version and localized step in the window title");
                 var controls = Descendants(wizard);
                 Assert(controls.Where(c => c is TextBox or ComboBox or CheckBox or RadioButton or Button or ListBox)
                     .All(c => !string.IsNullOrWhiteSpace(c.AccessibleName)), $"Named standard controls, page {page + 1}, {(polish ? "PL" : "EN")}");
