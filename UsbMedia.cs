@@ -13,14 +13,9 @@ internal sealed record UsbDisk(int Number, long Size, string Path, string Unique
 
 internal static class UsbMedia
 {
-    internal static string RequiredFirmware(SetupProfile profile)
-    {
-        if (profile.UsesAutomaticFirmware)
-            return "Any";
-        if (profile.SupportsFirmware(profile.Firmware, profile.Architecture))
-            return profile.Firmware.ToString();
-        return profile.Firmware == Firmware.Gpt ? "Mbr" : "Gpt";
-    }
+    internal static Firmware RequiredFirmware(SetupProfile profile) =>
+        profile.SupportsFirmware(profile.Firmware, profile.Architecture) ? profile.Firmware :
+            profile.Firmware == Firmware.Gpt ? Firmware.Mbr : Firmware.Gpt;
 
     internal static async Task<UsbDisk[]> ListDisks(string language)
     {

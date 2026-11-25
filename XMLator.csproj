@@ -5,8 +5,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.0.4</Version>
-    <InformationalVersion>1.04</InformationalVersion>
+    <Version>1.0.5</Version>
+    <InformationalVersion>1.05</InformationalVersion>
     <ApplicationIcon>assets\XMLator.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AllowedReferenceRelatedFileExtensions>.pdb</AllowedReferenceRelatedFileExtensions>
@@ -15,6 +15,7 @@
     <Compile Remove="vendor\**\*.cs;tests\**\*.cs;robocze\**\*.cs;niepotrzebne\**\*.cs" />
     <EmbeddedResource Include="assets\XMLator.ico" LogicalName="XMLator.ApplicationIcon.ico" />
     <EmbeddedResource Include="assets\UsbMedia.ps1" LogicalName="XMLator.UsbMedia.ps1" />
+    <EmbeddedResource Include="assets\KeepSingleMbrPartition.ps1" LogicalName="XMLator.KeepSingleMbrPartition.ps1" />
     <EmbeddedResource Include="assets\ApplyUpdate.ps1" LogicalName="XMLator.ApplyUpdate.ps1" />
     <EmbeddedResource Include="assets\UsbDiagnosticKeys.txt" LogicalName="XMLator.UsbDiagnosticKeys.txt" />
     <EmbeddedResource Include="assets\Translations\*.json" LogicalName="XMLator.Translations.%(Filename)%(Extension)" />

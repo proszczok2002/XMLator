@@ -431,19 +431,29 @@ internal sealed partial class Wizard
         var generated = new Fields();
         var custom = new Fields();
         var normal = new Fields();
-        string method = profile.InstallationMethod;
-        if (profile.Target.Windows11)
+        Explain(f.Select(L("&Metoda instalacji", "Installation &method"), profile.InstallationMethod,
+            InstallationMethods(), value =>
+            {
+                profile.Advanced["PE"] = value;
+                ShowMethod();
+            }),
+            "Windows Setup obsługuje zwykłą instalację. DISM nakłada obraz bezpośrednio w Windows PE.",
+            "Windows Setup runs a standard installation. DISM applies the image directly in Windows PE.");
+        if (profile.Target.Windows11 && !profile.UsesLegacyWindows11)
         {
             Flag(normal, "BypassRequirements", "Pomiń sprawdzenie zgodności sprzętu z Windows 11", "Skip Windows 11 hardware compatibility checks");
             normal.Note(L("Dotyczy TPM, Secure Boot i RAM. Działanie zależy od kompilacji Windows 11.",
                 "Applies to TPM, Secure Boot and RAM. The result depends on the Windows 11 build."));
         }
+        else if (profile.UsesLegacyWindows11)
+            normal.Note(L("W trybie Legacy XML włącza pominięcie sprawdzania zgodności sprzętu z Windows 11.",
+                "In Legacy mode, the XML enables the Windows 11 hardware compatibility bypass."));
         Flag(f, "HidePowerShellWindows", "Ukryj okna uruchamianych skryptów PowerShell", "Hide PowerShell script windows");
         StringOption(custom, "PEText", "Treść skryptu CMD WinPE", "WinPE CMD script content", multi: true);
         normal.Note(L("Microsoft Windows Setup odczyta plik XML i sam uruchomi standardowe etapy instalacji. W razie problemu może wyświetlić ekran wymagający odpowiedzi.",
             "Microsoft Windows Setup reads the XML and runs the standard installation stages. An issue can bring up a prompt that needs an answer."));
-        generated.Note(L("Skrypt ze strony schneegans.de nakłada obraz przez DISM i tworzy pliki rozruchowe. Obsługuje jedną dużą C z partycjami pomocniczymi, ręczne partycjonowanie i własny skrypt DiskPart.",
-            "The script from schneegans.de applies the image with DISM and creates the boot files. It supports one large C with system partitions, manual partitioning and a custom DiskPart script."));
+        generated.Note(L("Skrypt ze strony schneegans.de nakłada obraz przez DISM i tworzy pliki rozruchowe zgodnie z wybranym układem i trybem rozruchu.",
+            "The script from schneegans.de applies the image with DISM and creates boot files for the selected layout and boot mode."));
         generated.Note(L("Jeśli chcesz podać klucz w tym trybie, użyj osobnego pola klucza aktywacji w kroku Edycja i klucz.",
             "To supply a key in this mode, use the separate activation key field on the Edition and key page."));
         custom.Note(L("Podejmujesz decyzje o partycjach i instalacji w treści skryptu CMD. W wersji standardowej WinPE PowerShell może być niedostępny.",
@@ -493,17 +503,23 @@ internal sealed partial class Wizard
         NumOption(paging, "PagingMax", "Rozmiar maksymalny w MiB", "Maximum size in MiB", 4096, 16, 16777216);
         paging.Table.Visible = profile.Option("Paging") == "Custom";
         generated.Section(paging);
-        normal.Table.Visible = method == "Normal";
-        generated.Table.Visible = method == "Generated";
-        custom.Table.Visible = method == "Custom";
         f.Section(normal);
         f.Section(generated);
         f.Section(custom);
+        ShowMethod();
+
+        void ShowMethod()
+        {
+            string method = profile.InstallationMethod;
+            normal.Table.Visible = method == "Normal";
+            generated.Table.Visible = method == "Generated";
+            custom.Table.Visible = method == "Custom";
+        }
 
         void UpdateDiskPart()
         {
             customDisk.Table.Visible = profile.Has("CustomDiskPart");
-            automaticLayout.Table.Visible = !profile.Has("CustomDiskPart") && profile.DiskMode == DiskMode.SystemAndWindows;
+            automaticLayout.Table.Visible = !profile.Has("CustomDiskPart") && profile.WipesDisk;
         }
     }
 

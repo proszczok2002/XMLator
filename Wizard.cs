@@ -481,160 +481,107 @@ internal sealed partial class Wizard : Form
 
     private void DiskPage(Fields f)
     {
-        var details = new Fields();
-        var existing = new Fields();
-        var partitionChoice = new Fields();
-        var layout = new Fields();
         var bootChoice = new Fields();
-        var efi = new Fields();
-        var bios = new Fields();
-        var automaticBootSize = new Fields();
-        var recovery = new Fields();
+        var partitionChoice = new Fields();
+        var details = new Fields();
         var data = new Fields();
         var sizes = new Fields();
-        var custom = new Fields();
-        var format = new Fields();
-        var optionalBios = new Fields();
+        var recovery = new Fields();
         var confirmation = new Fields();
-        ListBox? preview = null;
+        ListBox preview = null!;
         ComboBox disk = null!;
         ComboBox boot = null!;
-        NumericUpDown automatic = null!;
-        Choice<DiskMode>[] diskOptions = [];
         Button standardOptions = null!;
-        CheckBox? confirmed = null;
+        CheckBox confirmed = null!;
         Label noCommonBootMode = null!;
+        Label legacyWindows11 = null!;
         bool refreshing = false;
-        Choice<Firmware?>[] bootOptions =
+        Choice<Firmware>[] bootOptions =
         [
-            C<Firmware?>(Firmware.Gpt, "UEFI / GPT", "UEFI / GPT",
+            C(Firmware.Gpt, "UEFI / GPT", "UEFI / GPT",
                 "Uruchom nośnik w trybie UEFI. EFI przechowuje pliki startowe, a MSR to rezerwa systemowa Microsoftu.",
                 "Start the media in UEFI mode. EFI holds the boot files, and MSR is reserved for use by Windows."),
-            C<Firmware?>(Firmware.Mbr, "Legacy BIOS / MBR", "Legacy BIOS / MBR",
-                "Uruchom nośnik w trybie Legacy BIOS. Pliki rozruchowe systemu Windows trafią na aktywną partycję MBR.",
-                "Start the media in Legacy BIOS mode. Windows boot files go on an active MBR partition."),
-            C<Firmware?>(null, "Wykryj tryb w Windows PE (DISM)", "Detect the boot mode in Windows PE (DISM)",
-                "Skrypt DISM wybierze układ GPT lub MBR zgodnie z trybem uruchomienia nośnika.",
-                "The DISM script uses GPT or MBR according to the mode in which the installation media boots.")
+            C(Firmware.Mbr, profile.Target.Windows11 ? "Legacy BIOS / MBR (poza wymaganiami Windows 11)" : "Legacy BIOS / MBR",
+                profile.Target.Windows11 ? "Legacy BIOS / MBR (outside Windows 11 requirements)" : "Legacy BIOS / MBR",
+                "Uruchom nośnik w trybie Legacy BIOS. Pliki rozruchowe Windows trafią na aktywną partycję MBR.",
+                "Start the media in Legacy BIOS mode. Windows boot files go on an active MBR partition.")
         ];
+        Choice<DiskMode>[] diskOptions =
+        [
+            C(DiskMode.Interactive, "Ręcznie w instalatorze", "Manually in Setup",
+                "Podczas instalacji wybierzesz dysk, partycję i sposób formatowania.",
+                "During installation, choose the disk, partition and whether to format it."),
+            C(DiskMode.Single, "Jedna aktywna partycja C na całym dysku", "One active C partition on the entire disk",
+                "Instalator wyczyści cały wybrany dysk. Windows i pliki rozruchowe znajdą się na tej samej, aktywnej partycji C.",
+                "Setup wipes the entire selected disk. The single active C partition holds both Windows and the boot files."),
+            C(DiskMode.SystemAndWindows, "Partycje pomocnicze i jedna duża C", "System partitions and one large C partition",
+                "Po wyczyszczeniu dysku powstaną EFI, MSR i opcjonalnie WinRE. Partycja C zajmie pozostałe miejsce.",
+                "After the disk is erased, Setup creates EFI, MSR and optional WinRE partitions. C uses the remaining space."),
+            C(DiskMode.SystemWindowsData, "Partycje pomocnicze oraz C i D", "System partitions, C and D",
+                "Po wyczyszczeniu dysku powstaną EFI, MSR i opcjonalnie WinRE. Podaj rozmiar C. Partycja D zajmie pozostałe miejsce.",
+                "After the disk is erased, Setup creates EFI, MSR and optional WinRE partitions. Set the size of C. D uses the remaining space.")
+        ];
+        var manualDiskPart = new Choice<DiskMode>(DiskMode.Interactive, L("Ręcznie w DiskPart", "Manually in DiskPart"), ManualDiskPartNote());
+
         void Refresh()
         {
             if (refreshing)
                 return;
             refreshing = true;
-            try { ApplyDiskOptions(); }
+            try
+            {
+                profile.UpdateDiskOptions();
+                var modes = bootOptions.Where(choice => profile.SupportsLayoutFirmware(choice.Value)).ToArray();
+                var disks = diskOptions.Where(choice => profile.SupportsDiskMode(choice.Value)).Select(choice =>
+                    choice.Value == DiskMode.Interactive && profile.InstallationMethod == "Generated" ? manualDiskPart : choice).ToArray();
+                if (modes.SequenceEqual(boot.Items.OfType<Choice<Firmware>>()))
+                    SelectValue(boot, profile.Firmware);
+                else
+                    Fields.UpdateChoices(boot, profile.Firmware, modes);
+                if (disks.SequenceEqual(disk.Items.OfType<Choice<DiskMode>>()))
+                    SelectValue(disk, profile.DiskMode);
+                else
+                    Fields.UpdateChoices(disk, profile.DiskMode, disks);
+
+                bootChoice.Table.Visible = modes.Length > 0;
+                noCommonBootMode.Visible = modes.Length == 0;
+                legacyWindows11.Visible = profile.UsesLegacyWindows11;
+                partitionChoice.Table.Visible = profile.ChoosesDiskLayout;
+                details.Table.Visible = profile.NeedsDiskNumber;
+                data.Table.Visible = profile.HasSeparateData;
+                sizes.Table.Visible = profile.WipesDisk && profile.Firmware == Firmware.Gpt;
+                recovery.Table.Visible = profile.Recovery;
+                confirmation.Table.Visible = profile.RequiresDiskConsent;
+                confirmed.Text = DiskApprovalLabel();
+                confirmed.AccessibleName = confirmed.Text.Replace("&", "");
+                if (confirmed.Checked && !profile.ConfirmWipe)
+                    confirmed.Checked = false;
+                standardOptions.Visible = profile.InstallationMethod == "Normal";
+                Fields.UpdateList(preview, DiskSummary());
+            }
             finally { refreshing = false; }
         }
 
-        void ApplyDiskOptions()
-        {
-            profile.UpdateDiskOptions();
-            string method = profile.InstallationMethod;
-            var modes = bootOptions.Where(choice => choice.Value is Firmware firmware
-                ? profile.SupportsLayoutFirmware(firmware) : profile.SupportsAutomaticFirmware).ToArray();
-            Firmware? bootMode = profile.UsesAutomaticFirmware ? null : profile.Firmware;
-            var disks = diskOptions.Where(choice => profile.SupportsDiskMode(choice.Value)).ToArray();
-            if (modes.SequenceEqual(boot.Items.OfType<Choice<Firmware?>>()))
-                SelectValue(boot, bootMode);
-            else
-                Fields.UpdateChoices(boot, bootMode, modes);
-            if (disks.SequenceEqual(disk.Items.OfType<Choice<DiskMode>>()))
-                SelectValue(disk, profile.DiskMode);
-            else
-                Fields.UpdateChoices(disk, profile.DiskMode, disks);
-
-            bootChoice.Table.Visible = modes.Length > 0;
-            noCommonBootMode.Visible = modes.Length == 0;
-            if (confirmed is not null)
-            {
-                confirmed.Text = DiskApprovalLabel();
-                confirmed.AccessibleName = confirmed.Text.Replace("&", "");
-            }
-            if (confirmed is { Checked: true } && !profile.ConfirmWipe)
-                confirmed.Checked = false;
-            standardOptions.Visible = method == "Normal";
-            partitionChoice.Table.Visible = method == "Normal" || method == "Generated" && !profile.Has("CustomDiskPart");
-            details.Table.Visible = profile.NeedsDiskNumber && (method == "Normal" || profile.Option("TargetDisk", "Fixed") == "Fixed" ||
-                profile.Option("TargetDisk") == "Checked" && !profile.Has("DiskAnyIndex"));
-            existing.Table.Visible = profile.DiskMode is DiskMode.Existing or DiskMode.FormatExisting;
-            format.Table.Visible = profile.FormatsPartition;
-            layout.Table.Visible = profile.WipesDisk;
-            bool sizedLayout = profile.WipesDisk && profile.DiskMode != DiskMode.Single;
-            sizes.Table.Visible = sizedLayout;
-            automaticBootSize.Table.Visible = profile.DetectsDiskFirmware;
-            if (profile.DetectsDiskFirmware)
-                automatic.Value = profile.BootPartitionMiB;
-            efi.Table.Visible = profile.Firmware == Firmware.Gpt && !profile.DetectsDiskFirmware;
-            optionalBios.Table.Visible = profile.Firmware == Firmware.Mbr && profile.DiskMode == DiskMode.Custom;
-            bios.Table.Visible = profile.Firmware == Firmware.Mbr && !profile.DetectsDiskFirmware &&
-                (profile.DiskMode != DiskMode.Custom || profile.SeparateBiosBoot);
-            recovery.Table.Visible = profile.Recovery;
-            data.Table.Visible = profile.HasSeparateData;
-            custom.Table.Visible = profile.DiskMode == DiskMode.Custom;
-            confirmation.Table.Visible = profile.RequiresDiskConsent;
-            if (preview is not null)
-                Fields.UpdateList(preview, DiskSummary());
-        }
-
-        boot = Explain(bootChoice.Select(L("Tryb &rozruchu instalatora", "&Installer boot mode"), (Firmware?)profile.Firmware,
+        boot = Explain(bootChoice.Select(L("Tryb &rozruchu instalatora", "&Installer boot mode"), profile.Firmware,
             bootOptions, value =>
             {
                 if (refreshing)
                     return;
                 DiskMode previous = profile.DiskMode;
+                profile.Firmware = value;
                 profile.ConfirmWipe = false;
-                if (value is Firmware firmware)
-                {
-                    profile.Firmware = firmware;
-                    profile.Advanced.Remove("DetectFirmware");
-                }
-                else
-                    profile.Advanced["DetectFirmware"] = "1";
                 Refresh();
                 if (previous != profile.DiskMode)
-                    disk.AccessibilityObject.RaiseAutomationNotification(AutomationNotificationKind.Other,
-                        AutomationNotificationProcessing.CurrentThenMostRecent,
-                        L("Wybór partycji zmieniono na ręczny w instalatorze.", "Partition selection changed to manual in Setup."));
+                    boot.AccessibilityObject.RaiseAutomationNotification(AutomationNotificationKind.Other,
+                        AutomationNotificationProcessing.CurrentThenMostRecent, ManualDiskSelectionNotice());
             }), "Uruchom nośnik w wybranym trybie. UEFI używa GPT na dysku Windows, a Legacy BIOS używa MBR.",
             "Start the media in the selected mode. UEFI uses GPT for the Windows disk, and Legacy BIOS uses MBR.");
         f.Section(bootChoice);
         noCommonBootMode = f.Note(NoCommonBootMode());
-        if (profile.Target.ModernClient)
-            Explain(f.Select(L("&Metoda instalacji", "Installation &method"), profile.InstallationMethod,
-                InstallationMethods(), value =>
-                {
-                    profile.Advanced["PE"] = value;
-                    profile.ConfirmWipe = false;
-                    Refresh();
-                }),
-                "Windows Setup to instalator Microsoftu. Skrypt DISM nakłada obraz bezpośrednio i ma własne opcje dysku.",
-                "Windows Setup is the Microsoft installer. The DISM script applies the image directly and has its own disk options.");
+        legacyWindows11 = f.Note(LegacyWindows11Note());
 
-        diskOptions =
-            [C(DiskMode.Interactive, "Ręcznie w instalatorze", "Manually in Setup",
-                "Instalator zapyta o dysk i partycję. Tam też zdecydujesz o formatowaniu.", "Setup asks you to select the disk and partition. You can also choose whether to format it there."),
-             C(DiskMode.Existing, "Wskaż istniejącą partycję bez formatowania", "Use an existing partition without formatting",
-                "Podaj numer dysku i numer partycji z instalatora. XML wskazuje cel instalacji i pozostawia układ partycji.",
-                "Enter the disk and partition numbers shown in Setup. The XML selects the installation destination and preserves the partition layout."),
-             C(DiskMode.FormatExisting, "Sformatuj tylko wskazaną partycję", "Format only the selected partition",
-                "Instalator usunie dane ze wskazanej partycji i sformatuje ją jako NTFS. Pozostałe partycje zachowa.",
-                "Setup erases the data on the selected partition and formats it as NTFS. It keeps the other partitions."),
-             new(DiskMode.Available, L("Pierwsza odpowiednia partycja na dowolnym dysku", "First suitable partition on any disk"),
-                AvailablePartitionRequirement()),
-             C(DiskMode.Single, "Cały dysk jako jedna aktywna partycja C (BIOS/MBR)", "Whole disk as one active C partition (BIOS/MBR)",
-                "Instalator wyczyści cały wybrany dysk. Windows i pliki rozruchowe znajdą się na tej samej, aktywnej partycji C.",
-                "Setup wipes the entire selected disk. The single active C partition holds both Windows and the boot files."),
-             C(DiskMode.SystemAndWindows, "Jedna duża C i partycje pomocnicze", "One large C partition plus system partitions",
-                "Instalator wyczyści cały wybrany dysk. W UEFI utworzy EFI i MSR, w BIOS osobną partycję rozruchową. Możesz dodać WinRE. C zajmie resztę miejsca.",
-                "Setup wipes the entire selected disk. UEFI gets EFI and MSR partitions, while BIOS gets a separate boot partition. WinRE is optional. C uses the remaining space."),
-             C(DiskMode.SystemWindowsData, "C, partycja danych i partycje pomocnicze", "C, a data partition, and system partitions",
-                "Instalator wyczyści cały wybrany dysk. Podaj rozmiar C i wybierz literę partycji danych. Wpisz 0 w rozmiarze danych, aby wypełnić pozostałe miejsce.",
-                "Setup wipes the entire selected disk. Set the size of C and choose a letter for the data partition. Enter 0 as the data size to use the remaining space."),
-             C(DiskMode.Custom, "Własny układ z dodatkowymi partycjami danych", "Custom layout with multiple data partitions",
-                "Instalator wyczyści cały wybrany dysk. Samodzielnie ustalisz rozmiary, kolejność, litery i nazwy partycji danych.",
-                "Setup wipes the entire selected disk. Set the sizes, order, letters and labels of the data partitions yourself.")];
-        disk = Explain(partitionChoice.Select(L("Jak wybrać dysk i part&ycje?", "How should the &disk and partitions be selected?"),
-            profile.DiskMode, diskOptions, value =>
+        disk = Explain(partitionChoice.Select(L("Układ part&ycji", "Partition la&yout"), profile.DiskMode,
+            diskOptions, value =>
             {
                 if (refreshing)
                     return;
@@ -642,37 +589,21 @@ internal sealed partial class Wizard : Form
                 profile.ConfirmWipe = false;
                 Refresh();
             }),
-            "Wybierz cel w instalatorze, wskaż istniejącą partycję lub zleć utworzenie nowego układu. Nowy układ usuwa wszystkie partycje z wybranego dysku.",
-            "Choose manual selection, an existing partition, or a new layout. Creating a new layout erases partitions on the selected disk.");
+            "Tworzenie nowego układu usuwa wszystkie partycje z wybranego dysku.",
+            "Creating a new layout erases all partitions on the selected disk.");
         f.Section(partitionChoice);
         Explain(details.Number(L("Numer dysku według Windows Setup", "Disk number in Windows Setup"), profile.DiskNumber, 0, 999,
             value => { profile.DiskNumber = value; Refresh(); }), "Sprawdź numer dysku w instalatorze. Dysk 0 nie zawsze jest dyskiem, na którym chcesz zainstalować system.",
             "Check the disk number in Setup. Disk 0 may refer to a different drive than the one where you want to install Windows.");
-        Explain(existing.Number(L("Numer istniejącej partycji", "Existing partition number"), profile.PartitionNumber, 1, 999,
-            value => { profile.PartitionNumber = value; Refresh(); }), "Użyj numeru podanego po wybraniu dysku w instalatorze. Numer partycji zaczyna się od 1.",
-            "Use the number shown when you select the disk in Setup. Partition numbering starts at 1.");
-        var formattedLabel = format.Entry(L("Nazwa formatowanej partycji", "Label for the formatted partition"), profile.WindowsLabel,
-            value => { profile.WindowsLabel = value.Trim(); Refresh(); });
-        existing.Section(format);
-        details.Section(existing);
         f.Section(details);
 
+        PartitionSize(data, L("Rozmiar C w MiB", "C partition size in MiB"), profile.WindowsMiB, 1, int.MaxValue,
+            value => { profile.WindowsMiB = value; Refresh(); },
+            "1 GiB to 1024 MiB. Partycja D zajmie resztę miejsca.", "1 GiB is 1024 MiB. D uses the remaining space.");
+        f.Section(data);
         PartitionSizeHint(sizes);
-        var efiSize = PartitionSize(efi, L("Rozmiar EFI w MiB", "EFI size in MiB"), profile.EfiMiB, 1, 65536, value => { profile.EfiMiB = value; Refresh(); });
-        var biosSize = PartitionSize(bios, L("Rozmiar aktywnej partycji systemowej BIOS w MiB", "Active BIOS system partition size in MiB"),
-            profile.BiosMiB, 1, 65536, value => { profile.BiosMiB = value; Refresh(); });
-        automatic = PartitionSize(automaticBootSize, L("Rozmiar partycji rozruchowej EFI lub BIOS w MiB", "EFI or BIOS boot partition size in MiB"),
-            profile.BootPartitionMiB, 1, 65536, value =>
-            {
-                (profile.Firmware == Firmware.Gpt ? efiSize : biosSize).Value = value;
-            });
-        optionalBios.Select(L("Gdzie umieścić pliki rozruchowe BIOS?", "Where should the BIOS boot files go?"), profile.SeparateBiosBoot,
-            [C(true, "Oddzielna aktywna partycja systemowa", "Separate active system partition"), C(false, "Na aktywnej partycji Windows (C:)", "On the active Windows partition (C:)")],
-            value => { profile.SeparateBiosBoot = value; Refresh(); });
-        sizes.Section(efi);
-        sizes.Section(optionalBios);
-        sizes.Section(bios);
-        sizes.Section(automaticBootSize);
+        PartitionSize(sizes, L("Rozmiar EFI w MiB", "EFI size in MiB"), profile.EfiMiB, 1, 65536,
+            value => { profile.EfiMiB = value; Refresh(); });
         Explain(sizes.Check(L("Utwórz partycję &odzyskiwania (WinRE)", "Create a &recovery partition (WinRE)"),
             profile.Recovery, value => { profile.Recovery = value; Refresh(); }),
             "Rezerwuje osobne miejsce na narzędzia naprawy i odzyskiwania Windows.",
@@ -680,41 +611,17 @@ internal sealed partial class Wizard : Form
         PartitionSize(recovery, L("Rozmiar odzyskiwania w MiB", "Recovery size in MiB"), profile.RecoveryMiB, 1, 65536,
             value => { profile.RecoveryMiB = value; Refresh(); });
         sizes.Section(recovery);
-        layout.Section(sizes);
-        PartitionSize(data, L("Rozmiar C w MiB", "C partition size in MiB"), profile.WindowsMiB, 1, int.MaxValue,
-            value => { profile.WindowsMiB = value; Refresh(); });
-        PartitionSize(data, L("Rozmiar partycji danych w MiB (0 oznacza resztę dysku)", "Data partition size in MiB (0 uses the remaining space)"),
-            profile.DataMiB, 0, int.MaxValue, value => { profile.DataMiB = value; Refresh(); },
-            "Wpisz 0, aby użyć pozostałego miejsca.", "Enter 0 to use the remaining space.");
-        data.Select(L("Litera partycji danych", "Data partition drive letter"), profile.DataLetter,
-            DataLetters(),
-            value => { profile.DataLetter = value; Refresh(); });
-        layout.Section(data);
-        var customLabel = custom.Entry(L("Nazwa partycji Windows (C:)", "Windows partition label (C:)"), profile.WindowsLabel,
-            value => { profile.WindowsLabel = value.Trim(); Refresh(); });
-        formattedLabel.Leave += (_, _) => customLabel.Text = profile.WindowsLabel;
-        customLabel.Leave += (_, _) => formattedLabel.Text = profile.WindowsLabel;
-        PartitionSize(custom, L("Rozmiar C w MiB (0 oznacza resztę dysku)", "C size in MiB (0 uses the remaining space)"),
-            profile.CustomWindowsMiB, 0, int.MaxValue, value => { profile.CustomWindowsMiB = value; Refresh(); },
-            "1 GiB to 1024 MiB. Jeżeli dodajesz osobne partycje danych, podaj stały rozmiar C, np. 131072 MiB dla 128 GiB.",
-            "1 GiB is 1024 MiB. If you add separate data partitions, enter a fixed C size, for example 131072 MiB for 128 GiB.");
-        custom.Button(L("&Dodaj, edytuj i ustaw kolejność partycji danych…", "&Add, edit and reorder data partitions…"), () =>
-        {
-            EditDataPartitions();
-            Refresh();
-        });
-        layout.Section(custom);
-        f.Section(layout);
+        f.Section(sizes);
+        preview = f.List(L("Plan partycji w kolejności na dysku", "Partition plan in disk order"), DiskSummary());
+        confirmed = DiskApproval(confirmation);
+        f.Section(confirmation);
         if (profile.Target.ModernClient)
-            CategoryButton(f, L("Ustawienia wybranej metody…", "Settings for the selected method…"), PeOptions, Refresh);
+            CategoryButton(f, L("Metoda instalacji i ustawienia WinPE…", "Installation method and WinPE settings…"), PeOptions, Refresh);
         standardOptions = f.Button(L("Zaawansowane ustawienia Windows Setup…", "Advanced Windows Setup settings…"), () =>
         {
             StandardSetupOptions();
             Refresh();
         });
-        preview = f.List(L("Plan partycji w kolejności na dysku", "Partition plan in disk order"), DiskSummary());
-        confirmed = DiskApproval(confirmation);
-        f.Section(confirmation);
         Refresh();
     }
 
@@ -886,15 +793,14 @@ internal sealed partial class Wizard : Form
 
     private void LoadProfile(string path)
     {
-        profile = IniProfile.Load(path);
-        bool resetDiskSelection = profile.UpdateDiskOptions();
+        profile = IniProfile.Load(path, out bool resetDiskSelection);
         ResetUsbOptions();
         step = 0;
         ShowStep();
         MarkConfigurationSaved();
         if (resetDiskSelection)
-            Info(L("Układ dysku zapisany w profilu jest niedostępny w tym trybie rozruchu lub metodzie instalacji. W kroku Dysk i partycje ustawiono ręczny wybór w instalatorze.",
-                "The saved disk layout is unavailable with this boot mode or installation method. The Disk and partitions page now uses manual selection in Setup."));
+            Info(L("Zapisany układ partycji został zmieniony. Sprawdź krok Dysk i partycje przed ponownym zapisaniem XML.",
+                "The saved partition layout has changed. Review Disk and partitions before saving the XML again."));
     }
 
     private byte[] ConfigurationFingerprint()

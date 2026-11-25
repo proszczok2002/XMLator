@@ -80,12 +80,11 @@ internal static class Checks
         {
             var setupFirmware = Enum.Parse<Firmware>(firmwareName);
             var p = new SetupProfile { TargetName = version, Architecture = "amd64", AcceptEula = true,
-                DiskMode = DiskMode.SystemAndWindows, Firmware = setupFirmware, DiskNumber = 0, CreateUsers = true, SetLocale = true,
+                DiskMode = setupFirmware == Firmware.Mbr ? DiskMode.Single : DiskMode.SystemAndWindows,
+                Firmware = setupFirmware, DiskNumber = 0, CreateUsers = true, SetLocale = true,
                 ImageMode = ImageMode.Edition, PresetEdition = edition,
                 FirstRun = operation == "--vm-offline-answer" ? FirstRunMode.Offline : FirstRunMode.SkipSupported,
                 Logon = LogonMode.FirstAdministrator, KeyMode = operation == "--vm-answer" ? KeyMode.Default : KeyMode.Skip };
-            if (p.Target.Windows11 && setupFirmware == Firmware.Mbr)
-                p.Advanced["BypassRequirements"] = "1";
             if (p.Target.Server)
             {
                 p.SetServerAdministratorPassword = true;
@@ -110,6 +109,21 @@ internal static class Checks
                 IniProfile.Save(output, p);
             else
                 MediaPackage.Export(output, null, AnswerFile.Build(p), profile: null);
+            return;
+        }
+        if (args is ["--disk-vm-answer", var diskXml, var diskWindows, var diskFirmware, var layoutName, var diskMethod])
+        {
+            var p = new SetupProfile
+            {
+                TargetName = diskWindows, Firmware = Enum.Parse<Firmware>(diskFirmware), DiskMode = Enum.Parse<DiskMode>(layoutName),
+                AcceptEula = true, ImageMode = ImageMode.Index, KeyMode = KeyMode.Skip,
+                CreateUsers = true, Logon = LogonMode.FirstAdministrator, FirstRun = FirstRunMode.SkipSupported,
+                Users = [new LocalUser { Name = "XMLatorLab", Password = "Xmlator-Lab-2026!" }], WindowsMiB = 65536
+            };
+            p.Advanced["PE"] = diskMethod;
+            LocaleCatalog.ApplyLanguage(p, "en-US");
+            p.ConfirmWipe = true;
+            MediaPackage.Export(diskXml, null, AnswerFile.Build(p), profile: null);
             return;
         }
         if (args is ["--vm-export-ui", var vmExecutable, var vmProfile, var vmAnswer])
@@ -308,15 +322,17 @@ internal static class Checks
                 {
                     foreach (Firmware firmware in Enum.GetValues<Firmware>())
                     {
-                        if (firmware == Firmware.Mbr && (target.Windows11 || architecture is "arm64" or "ia64") ||
+                        if (firmware == Firmware.Mbr && architecture is "arm64" or "ia64" ||
                             firmware == Firmware.Gpt && !target.CanUseGpt(architecture))
                             continue;
-                        foreach (DiskMode mode in Enum.GetValues<DiskMode>().Where(m => m is not (DiskMode.Single or DiskMode.Available) || firmware == Firmware.Mbr))
+                        var layouts = firmware == Firmware.Mbr ? new[] { DiskMode.Interactive, DiskMode.Single } :
+                            [DiskMode.Interactive, DiskMode.SystemAndWindows, DiskMode.SystemWindowsData];
+                        foreach (DiskMode mode in layouts)
                         {
                             var p = new SetupProfile
                             {
                                 TargetName = target.Name, Architecture = architecture, AcceptEula = true,
-                                DiskMode = mode, Firmware = firmware, DiskNumber = 2, PartitionNumber = 3,
+                                DiskMode = mode, Firmware = firmware, DiskNumber = 2,
                                 ImageMode = ImageMode.Index, ImageIndex = 2, CreateUsers = true, SetLocale = true
                             };
                             p.ConfirmWipe = true;
@@ -339,7 +355,7 @@ internal static class Checks
             VerifyFirstRunAndExplorer(folder, schema);
             VerifyDiskApproval(schema);
             VerifyBootModeProfiles(folder, schema);
-            VerifyCustomDiskProfiles(schema);
+            VerifyDataPartitions(schema);
             RunWinFormsChecks(() =>
             {
                 VerifyWizard();
@@ -584,32 +600,16 @@ internal static class Checks
     private static void VerifyLayout(SetupProfile profile, XDocument doc)
     {
         XElement? configuration = doc.Descendants(U + "DiskConfiguration").SingleOrDefault();
-        Assert((configuration is not null) == (profile.WipesDisk || profile.FormatsPartition),
+        Assert((configuration is not null) == profile.WipesDisk,
             $"{profile.TargetName} {profile.Architecture} {profile.Firmware} {profile.DiskMode}");
-        Assert(doc.Descendants(U + "InstallToAvailablePartition").Any() == (profile.DiskMode == DiskMode.Available),
-            "Emit automatic target selection only for the explicit Legacy BIOS choice");
+        Assert(!doc.Descendants(U + "InstallToAvailablePartition").Any(), "Never search other disks for a suitable partition");
         if (profile.DiskMode == DiskMode.Interactive)
         {
             Assert(!doc.Descendants(U + "InstallTo").Any(), "Leave target selection interactive");
             return;
         }
-        if (profile.DiskMode == DiskMode.Available)
-        {
-            Assert(!doc.Descendants(U + "InstallTo").Any() && (bool)doc.Descendants(U + "InstallToAvailablePartition").Single(),
-                "Let Setup select the first available partition");
-            return;
-        }
         var installTo = doc.Descendants(U + "InstallTo").Single();
         Assert((int)installTo.Element(U + "DiskID")! == profile.DiskNumber, "Preserve target disk number");
-        if (!profile.WipesDisk)
-        {
-            Assert((int)installTo.Element(U + "PartitionID")! == profile.PartitionNumber, "Use existing partition");
-            if (profile.FormatsPartition)
-                Assert(!(bool)configuration!.Descendants(U + "WillWipeDisk").Single() &&
-                    configuration.Descendants(U + "ModifyPartition").Single().Element(U + "Format")?.Value == "NTFS" &&
-                    !configuration.Descendants(U + "CreatePartitions").Any(), "Format only the existing target partition");
-            return;
-        }
         var created = configuration!.Descendants(U + "CreatePartition").ToArray();
         var modified = configuration.Descendants(U + "ModifyPartition").ToArray();
         int number = (int)installTo.Element(U + "PartitionID")!;
@@ -792,27 +792,28 @@ internal static class Checks
                     var expectedBoot = new List<Firmware>();
                     if (target.CanUseGpt(arch))
                         expectedBoot.Add(Firmware.Gpt);
-                    if (!target.Windows11 && arch is not ("arm64" or "ia64"))
+                    if (arch is "x86" or "amd64")
                         expectedBoot.Add(Firmware.Mbr);
                     foreach (Firmware expectedFirmware in expectedBoot)
                     {
                         profile.DiskMode = DiskMode.Interactive;
                         profile.Firmware = expectedFirmware;
                         Show(3);
-                        var disk = Field<ComboBox>("How should the disk and partitions be selected?", "Jak wybrać dysk i partycje?");
+                        var disk = Field<ComboBox>("Partition layout", "Układ partycji");
                         var boot = Field<ComboBox>("Installer boot mode", "Tryb rozruchu instalatora");
                         var modes = disk.Items.OfType<Choice<DiskMode>>().ToDictionary(choice => choice.Value);
                         bool legacy = expectedFirmware == Firmware.Mbr;
-                        Assert(boot.Visible && boot.Focused && boot.SelectedItem is Choice<Firmware?> choice &&
-                            choice.Value == expectedFirmware && boot.Items.OfType<Choice<Firmware?>>().Select(item => item.Value)
-                                .SequenceEqual(expectedBoot.Select(firmware => (Firmware?)firmware)),
+                        Assert(boot.Visible && boot.Focused && boot.SelectedItem is Choice<Firmware> choice &&
+                            choice.Value == expectedFirmware && boot.Items.OfType<Choice<Firmware>>().Select(item => item.Value)
+                                .SequenceEqual(expectedBoot),
                             $"{target.Name}/{arch}/{expectedFirmware}: focus the firmware list first and select a supported mode");
-                        Assert(modes.ContainsKey(DiskMode.Single) == legacy && modes.ContainsKey(DiskMode.Available) == legacy &&
-                            modes.Count == (legacy ? 8 : 6), $"{target.Name}/{arch}/{expectedFirmware}: offer only the applicable layouts");
+                        Assert(modes.Keys.SequenceEqual(legacy ? [DiskMode.Interactive, DiskMode.Single] :
+                            [DiskMode.Interactive, DiskMode.SystemAndWindows, DiskMode.SystemWindowsData]),
+                            $"{target.Name}/{arch}/{expectedFirmware}: offer only the applicable layouts");
                         foreach (var diskOption in modes.Values)
                         {
                             disk.SelectedItem = diskOption;
-                            Assert(boot.Visible && profile.Firmware == expectedFirmware && UsbMedia.RequiredFirmware(profile) == expectedFirmware.ToString(),
+                            Assert(boot.Visible && profile.Firmware == expectedFirmware && UsbMedia.RequiredFirmware(profile) == expectedFirmware,
                                 $"{target.Name}/{arch}/{expectedFirmware}/{diskOption.Value}: keep the selected boot mode and use it for USB");
                             if (diskOption.Value == DiskMode.Single)
                                 Assert(XMLator.Layout.Plan(profile) is [{ Windows: true, Active: true, Format: "NTFS" }],
@@ -907,41 +908,45 @@ internal static class Checks
         profile.Firmware = Firmware.Gpt;
         profile.DiskMode = DiskMode.SystemAndWindows;
         profile.Advanced["PE"] = "Generated";
-        profile.Advanced["DetectFirmware"] = "1";
         Show(3);
-        var layouts = Field<ComboBox>("How should the disk and partitions be selected?", "Jak wybrać dysk i partycje?");
+        var layouts = Field<ComboBox>("Partition layout", "Układ partycji");
         Assert(layouts.Items.OfType<Choice<DiskMode>>().Select(choice => choice.Value)
-            .SequenceEqual([DiskMode.Interactive, DiskMode.SystemAndWindows]) &&
-            Field<ComboBox>("Installer boot mode", "Tryb rozruchu instalatora").SelectedItem is Choice<Firmware?> { Value: null } &&
-            Field<NumericUpDown>("EFI or BIOS boot partition size in MiB", "Rozmiar partycji rozruchowej EFI lub BIOS w MiB").Visible,
-            "DISM offers only applicable layouts and selects firmware detection on the first list");
+            .SequenceEqual([DiskMode.Interactive, DiskMode.SystemAndWindows, DiskMode.SystemWindowsData]) &&
+            Field<ComboBox>("Installer boot mode", "Tryb rozruchu instalatora").SelectedItem is Choice<Firmware> { Value: Firmware.Gpt },
+            "DISM and Windows Setup offer the same choices in UEFI");
         profile.Advanced["CustomDiskPart"] = "1";
         Show(3);
-        Assert(!Field<ComboBox>("How should the disk and partitions be selected?", "Jak wybrać dysk i partycje?").Visible &&
+        Assert(!Field<ComboBox>("Partition layout", "Układ partycji").Visible &&
             profile.RequiresCustomPeConsent, "A custom DiskPart script replaces the wizard's layout controls and requires confirmation");
         profile.Advanced["PE"] = "Custom";
         Show(3);
-        Assert(!Field<ComboBox>("How should the disk and partitions be selected?", "Jak wybrać dysk i partycje?").Visible &&
+        Assert(!Field<ComboBox>("Partition layout", "Układ partycji").Visible &&
             !Field<Button>("Advanced Windows Setup settings…", "Zaawansowane ustawienia Windows Setup…").Visible,
             "A custom WinPE script hides both the layout and the Windows Setup screens settings");
         profile.Advanced.Clear();
         profile.DiskMode = DiskMode.Interactive;
         Show(3);
         var boots = Field<ComboBox>("Installer boot mode", "Tryb rozruchu instalatora");
-        layouts = Field<ComboBox>("How should the disk and partitions be selected?", "Jak wybrać dysk i partycje?");
+        layouts = Field<ComboBox>("Partition layout", "Układ partycji");
         boots.SelectedIndex = 1;
-        Assert(layouts.Items.OfType<Choice<DiskMode>>().Count(choice => choice.Value == DiskMode.Available) == 1 &&
-            boots.Focused, "Selecting Legacy BIOS keeps focus and adds the first-partition choice");
-        layouts.SelectedItem = layouts.Items.OfType<Choice<DiskMode>>().Single(choice => choice.Value == DiskMode.Available);
-        Assert(profile.DiskMode == DiskMode.Available &&
-            !Field<NumericUpDown>("Disk number in Windows Setup", "Numer dysku według Windows Setup").Visible,
-            "Automatic partition selection applies from the main list without an irrelevant disk number");
+        Assert(layouts.Items.OfType<Choice<DiskMode>>().Select(choice => choice.Value)
+            .SequenceEqual([DiskMode.Interactive, DiskMode.Single]) && boots.Focused,
+            "Selecting Legacy BIOS keeps focus and shows only manual and single active C");
+        layouts.SelectedIndex = 1;
+        Assert(profile.DiskMode == DiskMode.Single &&
+            Field<NumericUpDown>("Disk number in Windows Setup", "Numer dysku według Windows Setup").Visible &&
+            !Field<NumericUpDown>("EFI size in MiB", "Rozmiar EFI w MiB").Visible &&
+            !Field<NumericUpDown>("C partition size in MiB", "Rozmiar C w MiB").Visible,
+            "Single active C uses a disk number and leaves GPT sizes out of the tab stops");
+        var consent = Descendants(wizard).OfType<CheckBox>().Single(check => check.Visible);
+        consent.Checked = true;
         boots.SelectedIndex = 0;
         Assert(profile.DiskMode == DiskMode.Interactive && layouts.SelectedItem is Choice<DiskMode> { Value: DiskMode.Interactive } &&
-            layouts.Items.OfType<Choice<DiskMode>>().All(choice => choice.Value != DiskMode.Available),
-            "Switching to UEFI safely restores manual partition selection");
+            layouts.Items.OfType<Choice<DiskMode>>().All(choice => choice.Value != DiskMode.Single) &&
+            !consent.Visible && !profile.ConfirmWipe,
+            "Switching to UEFI safely restores manual partition selection and clears confirmation");
         boots.SelectedIndex = 1;
-        layouts.SelectedItem = layouts.Items.OfType<Choice<DiskMode>>().Single(choice => choice.Value == DiskMode.Single);
+        layouts.SelectedIndex = 1;
         Show(8);
         Assert(!Descendants(wizard).OfType<ComboBox>().Any(combo => combo.AccessibleName == "USB boot mode") &&
             Descendants(wizard).OfType<Label>().Any(label => label.Visible && label.Text.Contains("USB boot mode — Legacy BIOS")) &&
@@ -1212,12 +1217,11 @@ internal static class Checks
         theme.Invoke(wizard, [AppTheme.Light]);
         Assert(wizard.BackColor == SystemColors.Control && Application.ColorMode == SystemColorMode.Classic, "Restore light application theme");
         go.Invoke(wizard, [1]);
-        var disk = Descendants(wizard).OfType<ComboBox>().Single(control => control.AccessibleName == "How should the disk and partitions be selected?");
-        var method = Descendants(wizard).OfType<ComboBox>().Single(control => control.AccessibleName == "Installation method");
-        Assert(method.Items.OfType<Choice<string>>().Any(choice => choice.Label == "Microsoft Windows Setup (recommended)") &&
-            method.Items.OfType<Choice<string>>().Any(choice => choice.Label == "DISM script from schneegans.de"), "Describe the Windows Setup and DISM methods in the disk wizard");
+        var disk = Descendants(wizard).OfType<ComboBox>().Single(control => control.AccessibleName == "Partition layout");
+        Assert(Descendants(wizard).OfType<Button>().Any(control => control.AccessibleName == "Installation method and WinPE settings…"),
+            "Expose the optional installation methods in their own dialog");
         disk.SelectedItem = disk.Items.OfType<Choice<DiskMode>>().Single(choice => choice.Value == DiskMode.SystemAndWindows);
-        Assert(MouseHelp(disk)?.Contains("EFI and MSR") == true, "Describe the selected disk layout, including its system partitions");
+        Assert(MouseHelp(disk)?.Contains("EFI, MSR") == true, "Describe the selected disk layout, including its system partitions");
         var efiSize = Descendants(wizard).OfType<NumericUpDown>().Single(control => control.AccessibleName == "EFI size in MiB");
         var efiEditor = efiSize.Controls.OfType<TextBox>().Single();
         Assert(efiEditor.Focus() && !efiEditor.ReadOnly && efiEditor.SelectedText == efiEditor.Text &&
@@ -1449,65 +1453,104 @@ internal static class Checks
     private static void VerifyBootModeProfiles(string folder, XmlSchemaSet schema)
     {
         string ini = Path.Combine(folder, "boot-mode.ini");
-        var profile = new SetupProfile { TargetName = "Windows 10", Firmware = Firmware.Mbr, ImageMode = ImageMode.Index,
-            ImagePrompt = SetupPrompt.Never };
-        foreach (var layout in new[] { DiskMode.Available, DiskMode.Single })
-        {
-            profile.DiskMode = layout;
-            IniProfile.Save(ini, profile);
-            var loaded = IniProfile.Load(ini);
-            Assert(!loaded.UpdateDiskOptions() && loaded.DiskMode == layout && loaded.Firmware == Firmware.Mbr && !loaded.ConfirmWipe,
-                "Keep compatible BIOS profiles and ask for fresh consent after loading");
+        var profile = new SetupProfile { Firmware = Firmware.Mbr, DiskMode = DiskMode.Single,
+            ImageMode = ImageMode.Index, ImagePrompt = SetupPrompt.Never, ConfirmWipe = true };
+        IniProfile.Save(ini, profile);
+        var loaded = IniProfile.Load(ini, out bool changed);
+        Assert(!changed && loaded.DiskMode == DiskMode.Single && loaded.Firmware == Firmware.Mbr && !loaded.ConfirmWipe,
+            "Keep compatible Windows 11 Legacy profiles and ask for fresh consent after loading");
+        loaded.ConfirmWipe = true;
+        var legacyAnswer = AnswerFile.Build(loaded);
+        legacyAnswer.Validate(schema, null);
+        Assert(legacyAnswer.ToString().Contains("BypassTPMCheck") && legacyAnswer.Descendants(U + "Active").Single().Value == "true",
+            "Legacy Windows 11 enables the compatibility option and creates an active C");
+        Assert(legacyAnswer.ToString().Contains("delete partition override") &&
+            legacyAnswer.ToString().Contains("$disk.Number -ne 0"),
+            "Preserve the single partition on the confirmed disk after Windows Setup adds WinRE");
+        Assert(!AnswerFile.Build(new SetupProfile()).ToString().Contains("BypassTPMCheck"),
+            "Standard Windows 11 in UEFI keeps the hardware checks by default");
 
-            loaded.Firmware = Firmware.Gpt;
-            loaded.ConfirmWipe = true;
-            Throws<SetupException>(() => AnswerFile.Build(loaded), "Reject a BIOS-only layout paired with UEFI at export");
-            Assert(loaded.UpdateDiskOptions() && loaded.DiskMode == DiskMode.Interactive && loaded.Firmware == Firmware.Gpt && !loaded.ConfirmWipe,
-                "Restore manual selection without changing the selected boot mode or retaining consent");
-            var answer = AnswerFile.Build(loaded);
-            answer.Validate(schema, null);
-            var image = answer.Descendants(U + "OSImage").Single();
-            Assert(image.Element(U + "InstallTo") is null && image.Element(U + "InstallToAvailablePartition") is null &&
-                image.Element(U + "WillShowUI")?.Value == "OnError", "Keep the disk selection screen available for a migrated UEFI profile");
-        }
-
+        loaded.Firmware = Firmware.Gpt;
+        Assert(!loaded.ConfirmWipe, "Changing firmware clears disk approval");
+        loaded.ConfirmWipe = true;
+        Throws<SetupException>(() => AnswerFile.Build(loaded), "Reject a BIOS-only layout paired with UEFI at export");
+        Assert(loaded.UpdateDiskOptions() && loaded.DiskMode == DiskMode.Interactive && loaded.Firmware == Firmware.Gpt && !loaded.ConfirmWipe,
+            "Restore manual selection without changing the selected boot mode or retaining consent");
         profile.ExtraArchitectures.Add("arm64");
         Assert(profile.UpdateDiskOptions() && profile.Firmware == Firmware.Gpt && profile.DiskMode == DiskMode.Interactive,
             "Adding ARM64 invalidates the Legacy layout and selects the common UEFI mode");
         var mixed = new SetupProfile { TargetName = "Windows Server 2008 SP2", Architecture = "x86",
-            ExtraArchitectures = ["ia64"], Firmware = Firmware.Mbr, DiskMode = DiskMode.Existing };
-        Assert(mixed.UpdateDiskOptions() && mixed.DiskMode == DiskMode.Interactive && UsbMedia.RequiredFirmware(mixed) == "Mbr",
+            ExtraArchitectures = ["ia64"], Firmware = Firmware.Mbr, DiskMode = DiskMode.Single };
+        Assert(mixed.UpdateDiskOptions() && mixed.DiskMode == DiskMode.Interactive && UsbMedia.RequiredFirmware(mixed) == Firmware.Mbr,
             "Keep manual destinations when legacy and Itanium images need different boot modes");
         var combined = AnswerFile.Build(mixed);
         combined.Validate(schema, null);
         Assert(!combined.Descendants(U + "InstallTo").Any(), "Export a manual profile for architectures without a common firmware mode");
 
-        var dism = new SetupProfile { TargetName = "Windows 10", AcceptEula = true, ImageMode = ImageMode.Index,
-            DiskMode = DiskMode.SystemAndWindows };
-        dism.Advanced["PE"] = "Generated";
-        foreach (var firmware in Enum.GetValues<Firmware>())
+        foreach (var (mode, firmware, oldSettings) in new (string, string, string)[]
         {
-            dism.Firmware = firmware;
-            dism.ConfirmWipe = true;
-            var answer = AnswerFile.Build(dism);
+            ("Existing", "Gpt", "PartitionNumber=4\n"),
+            ("FormatExisting", "Mbr", "PartitionNumber=2\n"),
+            ("Available", "Mbr", ""),
+            ("Custom", "Gpt", "CustomWindowsMiB=65536\n"),
+            ("SystemAndWindows", "Mbr", ""),
+            ("SystemWindowsData", "Gpt", "DataMiB=8192\n"),
+            ("SystemWindowsData", "Gpt", "DataLetter=\"F\"\n"),
+            ("SystemAndWindows", "Gpt", "Advanced={\"PE\":\"Generated\",\"DetectFirmware\":\"1\"}\n")
+        })
+        {
+            File.WriteAllText(ini, $"[XMLator]\nVersion=1\n[Setup]\nFirmware=\"{firmware}\"\nDiskMode=\"{mode}\"\n" +
+                $"ImageMode=\"Index\"\nImagePrompt=\"Never\"\nAcceptEula=true\n{oldSettings}");
+            loaded = IniProfile.Load(ini, out changed);
+            Assert(changed && loaded.DiskMode == DiskMode.Interactive && !loaded.RequiresDiskConsent,
+                "Migrate the replaced layout to manual selection: " + mode + " " + oldSettings.Trim());
+            var answer = AnswerFile.Build(loaded);
             answer.Validate(schema, null);
-            var commands = answer.Descendants(U + "Path").Select(path => path.Value).ToList();
-            int guard = commands.FindIndex(path => path.Contains("Restart the installation media", StringComparison.Ordinal) &&
-                path.Contains(firmware.ToString().ToUpperInvariant(), StringComparison.Ordinal));
-            int partition = commands.FindIndex(path => path.Contains(@"diskpart.exe /s X:\diskpart.txt", StringComparison.OrdinalIgnoreCase));
-            Assert(guard >= 0 && partition > guard && UsbMedia.RequiredFirmware(dism) == firmware.ToString(),
-                "DISM checks the selected firmware before partitioning and uses the same USB mode");
+            Assert(!answer.Descendants(U + "InstallTo").Any() && !answer.Descendants(U + "InstallToAvailablePartition").Any() &&
+                !answer.Descendants(U + "DiskConfiguration").Any() && !loaded.Advanced.ContainsKey("DetectFirmware"),
+                "The migrated answer never selects or formats a partition");
+            if (loaded.InstallationMethod == "Normal")
+                Assert(answer.Descendants(U + "OSImage").Single().Element(U + "WillShowUI")?.Value == "OnError",
+                    "Keep the disk selection screen available for a migrated profile");
         }
-        dism.Advanced["DetectFirmware"] = "1";
-        dism.ConfirmWipe = true;
-        var auto = AnswerFile.Build(dism);
-        auto.Validate(schema, null);
-        Assert(dism.DetectsDiskFirmware && UsbMedia.RequiredFirmware(dism) == "Any" &&
-            auto.ToString().Contains(@"diskpart.exe /s X:\%LAYOUT%.txt", StringComparison.Ordinal),
-            "With detection selected, DISM chooses the matching layout at boot");
-        dism.BiosMiB = 150;
-        dism.ConfirmWipe = true;
-        Throws<SetupException>(() => AnswerFile.Build(dism), "Automatic mode requires a partition size suitable for EFI too");
+        File.WriteAllText(ini, "[XMLator]\nVersion=1\n[Setup]\nFirmware=\"Gpt\"\nDiskMode=\"SystemWindowsData\"\n" +
+            "WindowsMiB=98304\nDataLetter=\"D\"\nDataMiB=0\n");
+        loaded = IniProfile.Load(ini, out changed);
+        Assert(!changed && loaded.HasSeparateData && loaded.WindowsMiB == 98304, "Keep a compatible GPT C and D profile");
+
+        foreach (var target in Target.All.Where(target => target.ModernClient))
+        foreach (string arch in target.Architectures)
+        foreach (var layout in new[] { DiskMode.Single, DiskMode.SystemAndWindows, DiskMode.SystemWindowsData })
+        {
+            var firmware = layout == DiskMode.Single ? Firmware.Mbr : Firmware.Gpt;
+            if (firmware == Firmware.Mbr && arch == "arm64")
+                continue;
+            foreach (bool withRecovery in new[] { false, true })
+            {
+                var dism = new SetupProfile
+                {
+                    TargetName = target.Name, Architecture = arch, AcceptEula = true, ImageMode = ImageMode.Index,
+                    DiskMode = layout, Firmware = firmware, Recovery = withRecovery
+                };
+                dism.Advanced["PE"] = "Generated";
+                dism.ConfirmWipe = true;
+                var answer = AnswerFile.Build(dism);
+                answer.Validate(schema, null);
+                string script = answer.Descendants().Single(element => element.Name.LocalName == "PEScriptCopy").Value;
+                int guard = script.IndexOf("Restart the installation media", StringComparison.Ordinal);
+                int partition = script.IndexOf(@"diskpart.exe /s X:\diskpart.txt", StringComparison.OrdinalIgnoreCase);
+                Assert(guard >= 0 && partition > guard && UsbMedia.RequiredFirmware(dism) == firmware,
+                    "DISM checks the selected firmware before partitioning and uses the same USB mode");
+                Assert(answer.Descendants(U + "Path").All(path => path.Value.Length <= 255),
+                    "The WinPE commands fit the unattended setup path limit");
+                Assert((layout == DiskMode.Single) == script.Contains("CONVERT MBR") &&
+                    (layout == DiskMode.Single) == script.Contains(@"bcdboot.exe W:\Windows /s W:") &&
+                    (layout == DiskMode.SystemWindowsData) == script.Contains("LABEL=\"Data\"") &&
+                    (layout == DiskMode.SystemWindowsData) == script.Contains(@"HKLM\XMLatorTargetSystem\MountedDevices /v ""\DosDevices\D:""") &&
+                    (withRecovery && layout != DiskMode.Single) == script.Contains("LABEL=\"Recovery\""),
+                    "DISM builds the exact selected partition layout and targets the matching boot volume");
+            }
+        }
     }
 
     private static void VerifyEditionSelection(XmlSchemaSet schema)
@@ -1537,14 +1580,13 @@ internal static class Checks
                         $"Suppress the setup key page without supplying any key for {target.Name} {architecture} {edition.Label}");
                     foreach (var firmware in Enum.GetValues<Firmware>())
                     {
-                        if (firmware == Firmware.Mbr && (target.Windows11 || architecture is "arm64" or "ia64") ||
+                        if (firmware == Firmware.Mbr && architecture is "arm64" or "ia64" ||
                             firmware == Firmware.Gpt && !target.CanUseGpt(architecture))
                             continue;
                         p.Firmware = firmware;
-                        foreach (var layout in Enum.GetValues<DiskMode>().Where(mode => mode is not (DiskMode.Single or DiskMode.Available) || firmware == Firmware.Mbr))
+                        foreach (var layout in Enum.GetValues<DiskMode>().Where(p.SupportsDiskMode))
                         {
                             p.DiskMode = layout;
-                            p.PartitionNumber = 1;
                             p.ConfirmWipe = true;
                             var variant = AnswerFile.Build(p);
                             variant.Validate(schema, null);
@@ -1646,14 +1688,12 @@ internal static class Checks
         }
     }
 
-    private static void VerifyCustomDiskProfiles(XmlSchemaSet schema)
+    private static void VerifyDataPartitions(XmlSchemaSet schema)
     {
         var profile = new SetupProfile
         {
-            TargetName = "Windows Vista SP2", Architecture = "x86", DiskMode = DiskMode.Custom, Firmware = Firmware.Mbr,
-            SeparateBiosBoot = false, CustomWindowsMiB = 32768,
-            DiskPrompt = SetupPrompt.Always, ImagePrompt = SetupPrompt.Never,
-            DataPartitions = [new("Dane", "D", 8192), new("Archiwum", "E", 16384), new("Pliki", "F", 0)],
+            TargetName = "Windows Vista SP2", Architecture = "amd64", DiskMode = DiskMode.SystemWindowsData,
+            WindowsMiB = 32768, DiskPrompt = SetupPrompt.Always, ImagePrompt = SetupPrompt.Never,
             RegisteredOwner = "Przykład", RegisteredOrganization = "Firma", Workgroup = "TEST"
         };
         profile.ConfirmWipe = true;
@@ -1664,20 +1704,18 @@ internal static class Checks
             document.Descendants(U + "JoinWorkgroup").Single().Value == "TEST", "Configure ownership and the workgroup in a Vista answer file");
         Assert(document.Descendants(U + "DiskConfiguration").Single().Element(U + "WillShowUI")?.Value == "Always" &&
             document.Descendants(U + "OSImage").Single().Element(U + "WillShowUI")?.Value == "Never", "Set the native disk and image prompts independently");
-        var types = document.Descendants(U + "CreatePartition").Select(partition => (string)partition.Element(U + "Type")!);
-        Assert(types.SequenceEqual(["Primary", "Primary", "Extended", "Logical", "Logical", "Logical"]), "Create an extended container for more than four MBR partitions");
-        Assert((bool)document.Descendants(U + "ModifyPartition").First().Element(U + "Active")! &&
-            (int)document.Descendants(U + "InstallTo").Single().Element(U + "PartitionID")! == 1, "Mark C active and install to it without an auxiliary BIOS partition");
-        var last = document.Descendants(U + "ModifyPartition").Last();
-        Assert((int)last.Element(U + "PartitionID")! == 5 && (bool)last.Element(U + "Extend")!, "Assign data partition IDs without counting the extended container and extend the last logical partition");
-        profile.DataPartitions.Reverse();
-        Assert(!profile.ConfirmWipe, "A change to data partition order needs new approval");
+        Assert(Layout.Plan(profile) is [{ Type: "EFI" }, { Type: "MSR", Size: 128 }, { Windows: true, Size: 32768 },
+            { Label: "Recovery" }, { Letter: "D", Size: 0 }], "Size C explicitly and give D the rest after the WinRE partition");
+        profile.Recovery = false;
+        Assert(!profile.ConfirmWipe, "A change to the recovery partition needs new approval");
+        Assert(Layout.Plan(profile) is [{ Type: "EFI" }, { Type: "MSR" }, { Windows: true }, { Letter: "D", Size: 0 }],
+            "Keep C and D when omitting the separate recovery partition");
+        profile.WindowsMiB = 0;
         profile.ConfirmWipe = true;
-        Throws<SetupException>(() => AnswerFile.Build(profile), "Reject remaining space before the last custom partition");
+        Throws<SetupException>(() => AnswerFile.Build(profile), "Require a positive supported size for C when creating D");
         profile.TargetName = "Windows Server 2008 R2";
         profile.Architecture = "ia64";
-        profile.Firmware = Firmware.Gpt;
-        profile.DataPartitions.Reverse();
+        profile.WindowsMiB = 65536;
         profile.ConfirmWipe = true;
         var ia64 = AnswerFile.Build(profile);
         ia64.Validate(schema, null);
@@ -1849,14 +1887,13 @@ internal static class Checks
     private static void VerifyUsb(string folder)
     {
         var profile = new SetupProfile { TargetName = "Windows 10" };
-        Assert(UsbMedia.RequiredFirmware(profile) == "Gpt", "Carry the UEFI mode through to USB with an interactive Windows 10 layout");
-        profile.DiskMode = DiskMode.SystemAndWindows;
+        Assert(UsbMedia.RequiredFirmware(profile) == Firmware.Gpt, "Carry the UEFI mode through to USB with an interactive Windows 10 layout");
+        profile.DiskMode = DiskMode.Single;
         profile.Firmware = Firmware.Mbr;
-        Assert(UsbMedia.RequiredFirmware(profile) == "Mbr", "Match the fixed BIOS layout in the XML");
+        Assert(UsbMedia.RequiredFirmware(profile) == Firmware.Mbr, "Match the fixed BIOS layout in the XML");
         profile.Advanced["PE"] = "Generated";
-        profile.Advanced["DetectFirmware"] = "1";
-        Assert(UsbMedia.RequiredFirmware(profile) == "Any", "Allow both USB modes with WinPE firmware detection");
-        Assert(UsbMedia.RequiredFirmware(new SetupProfile()) == "Gpt", "Use UEFI for standard Windows 11 media");
+        Assert(UsbMedia.RequiredFirmware(profile) == Firmware.Mbr, "Match the firmware required by the DISM script");
+        Assert(UsbMedia.RequiredFirmware(new SetupProfile()) == Firmware.Gpt, "Use UEFI for standard Windows 11 media");
 
         static string Resource(System.Reflection.Assembly assembly, string name)
         {

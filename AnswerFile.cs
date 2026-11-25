@@ -160,8 +160,8 @@ internal sealed class AnswerFile
                 "On the Disk and partitions page, choose a layout supported by the boot mode and installation method.");
         if (p.RequiresDiskConsent && !p.ConfirmWipe)
             throw new SetupException("Zaznacz zgodę na wybraną operację w kroku Dysk i partycje albo w podsumowaniu.", "Confirm the selected operation on the Disk and partitions page or on the review page.");
-        if (p.NeedsDiskNumber && p.DiskNumber < 0 || (p.DiskMode is DiskMode.Existing or DiskMode.FormatExisting) && p.PartitionNumber < 1)
-            throw new SetupException("Sprawdź numer dysku i numer partycji.", "Check the disk and partition numbers.");
+        if (p.NeedsDiskNumber && p.DiskNumber is < 0 or > 999)
+            throw new SetupException("Numer dysku musi wynosić od 0 do 999.", "The disk number must be between 0 and 999.");
         if (p.WipesDisk)
             _ = Layout.Plan(p, architecture);
         if (p.SetLocale)
@@ -183,8 +183,6 @@ internal sealed class AnswerFile
             throw new SetupException("Nazwa komputera musi mieć do 15 znaków ASCII, zawierać literę lub łącznik i zaczynać oraz kończyć się literą albo cyfrą.", "Use up to 15 ASCII letters, digits and hyphens for the computer name. Start and end with a letter or digit and avoid a digits-only name.");
         if (p.Workgroup.Length > 0 && (p.Workgroup.Length > 15 || p.Workgroup.IndexOfAny(['\\', '/', ':', '*', '?', '"', '<', '>', '|', '.', '[', ']', '+', '=', ',', ';']) >= 0 || p.Workgroup.Any(char.IsControl)))
             throw new SetupException("Nazwa grupy roboczej może mieć do 15 znaków. Użyj na przykład WORKGROUP.", "Use a workgroup name of up to 15 characters, for example WORKGROUP.");
-        if (p.FormatsPartition)
-            Layout.ValidateLabel(p.WindowsLabel);
         ValidateAccounts(p);
         MediaPackage.Validate(p);
     }
@@ -282,58 +280,37 @@ internal sealed class AnswerFile
             osImage.Add(E("InstallFrom", AddItem("MetaData", E("Key", selector), E("Value", value))));
         }
 
-        if (p.DiskMode == DiskMode.Available)
-            osImage.Add(E("InstallToAvailablePartition", true));
-        else if (p.NeedsDiskNumber)
+        if (p.WipesDisk)
         {
-            int installPartition = p.PartitionNumber;
-            if (p.WipesDisk)
+            var parts = Layout.Plan(p, architecture);
+            int installPartition = parts.FindIndex(part => part.Windows) + 1;
+            if (Layout.PrepareRecoveryInWinPe(p))
             {
-                var parts = Layout.Plan(p, architecture);
-                if (Layout.PrepareRecoveryInWinPe(p))
-                {
-                    WriteFlexibleGptLayout(setup, parts);
-                    installPartition = parts.FindIndex(part => part.Windows) + 1;
-                    var label = AddItem("ModifyPartition", E("Order", 1), E("PartitionID", installPartition),
-                        E("Label", parts[installPartition - 1].Label));
-                    setup.Add(E("DiskConfiguration", AddItem("Disk", E("DiskID", p.DiskNumber),
-                        E("WillWipeDisk", false), E("ModifyPartitions", label)), E("WillShowUI", p.DiskPrompt.ToString())));
-                }
-                else
-                {
-                    var creates = E("CreatePartitions");
-                    var changes = E("ModifyPartitions");
-                    int modifyOrder = 0;
-                    int partitionId = 0;
-                    for (int i = 0; i < parts.Count; i++)
-                    {
-                        var part = parts[i];
-                        creates.Add(AddItem("CreatePartition", E("Order", i + 1), E("Type", part.Type),
-                            part.ExtendAfterCreate ? E("Size", 100) : part.Size > 0 ? E("Size", part.Size) : E("Extend", true)));
-                        if (part.Type == "Extended")
-                            continue;
-                        partitionId++;
-                        if (part.Windows)
-                            installPartition = partitionId;
-                        if (part.Format is null)
-                            continue;
-                        changes.Add(AddItem("ModifyPartition", E("Order", ++modifyOrder), E("PartitionID", partitionId),
-                            E("Format", part.Format), E("Label", part.Label),
-                            part.ExtendAfterCreate ? E("Extend", true) : null,
-                            part.Active ? E("Active", true) : null,
-                            part.Letter is null ? null : E("Letter", part.Letter),
-                            part.TypeId is null ? null : E("TypeID", part.TypeId)));
-                    }
-                    setup.Add(E("DiskConfiguration", AddItem("Disk", E("DiskID", p.DiskNumber),
-                        E("WillWipeDisk", true), creates, changes), E("WillShowUI", p.DiskPrompt.ToString())));
-                }
-            }
-            else if (p.FormatsPartition)
-            {
-                var partition = AddItem("ModifyPartition", E("Order", 1), E("PartitionID", installPartition), E("Format", "NTFS"),
-                    p.WindowsLabel.Length == 0 ? null : E("Label", p.WindowsLabel));
+                WriteFlexibleGptLayout(setup, parts);
+                var label = AddItem("ModifyPartition", E("Order", 1), E("PartitionID", installPartition),
+                    E("Label", parts[installPartition - 1].Label));
                 setup.Add(E("DiskConfiguration", AddItem("Disk", E("DiskID", p.DiskNumber),
-                    E("WillWipeDisk", false), E("ModifyPartitions", partition)), E("WillShowUI", p.DiskPrompt.ToString())));
+                    E("WillWipeDisk", false), E("ModifyPartitions", label)), E("WillShowUI", p.DiskPrompt.ToString())));
+            }
+            else
+            {
+                var creates = E("CreatePartitions");
+                var changes = E("ModifyPartitions");
+                int modifyOrder = 0;
+                for (int i = 0; i < parts.Count; i++)
+                {
+                    var part = parts[i];
+                    creates.Add(AddItem("CreatePartition", E("Order", i + 1), E("Type", part.Type),
+                        part.Size > 0 ? E("Size", part.Size) : E("Extend", true)));
+                    if (part.Format is null)
+                        continue;
+                    changes.Add(AddItem("ModifyPartition", E("Order", ++modifyOrder), E("PartitionID", i + 1),
+                        E("Format", part.Format), E("Label", part.Label), part.Active ? E("Active", true) : null,
+                        part.Letter is null ? null : E("Letter", part.Letter),
+                        part.TypeId is null ? null : E("TypeID", part.TypeId)));
+                }
+                setup.Add(E("DiskConfiguration", AddItem("Disk", E("DiskID", p.DiskNumber),
+                    E("WillWipeDisk", true), creates, changes), E("WillShowUI", p.DiskPrompt.ToString())));
             }
             osImage.Add(E("InstallTo", E("DiskID", p.DiskNumber), E("PartitionID", installPartition)));
         }
@@ -523,95 +500,41 @@ internal sealed class AnswerFile
 }
 
 internal sealed record Partition(string Type, int Size, string? Format = null, string? Label = null,
-    bool Windows = false, bool Active = false, string? Letter = null, string? TypeId = null, bool ExtendAfterCreate = false);
+    bool Windows = false, bool Active = false, string? Letter = null, string? TypeId = null);
 
 internal static class Layout
 {
     // Unattend's Extend consumes all remaining space. WinPE reserves the recovery space after C before Setup starts applying the image.
     internal static bool PrepareRecoveryInWinPe(SetupProfile p) =>
-        p.Firmware == Firmware.Gpt && p.Recovery && !p.Target.OldMsr &&
-        p.InstallationMethod == "Normal" &&
-        (p.DiskMode == DiskMode.SystemAndWindows || p.DiskMode == DiskMode.Custom && p.CustomWindowsMiB == 0 && p.DataPartitions.Count == 0);
+        p.DiskMode == DiskMode.SystemAndWindows && p.Recovery && !p.Target.OldMsr && p.InstallationMethod == "Normal";
 
     public static List<Partition> Plan(SetupProfile p, string? architecture = null)
     {
         architecture ??= p.Architecture;
-        if (p.Firmware == Firmware.Mbr && !p.SupportsFirmware(Firmware.Mbr, architecture))
-            throw new SetupException("Dla tej konfiguracji wybierz UEFI/GPT.", "Select UEFI/GPT for this configuration.");
-        if (p.Firmware == Firmware.Gpt && !p.SupportsFirmware(Firmware.Gpt, architecture))
-            throw new SetupException("Wybrany Windows i architektura wymagają tu BIOS/MBR. W Viście UEFI jest dostępne dla x64 z SP1 lub SP2.",
-                "The selected Windows version and architecture require BIOS/MBR here. Vista supports UEFI with x64 SP1 or SP2.");
         if (p.DiskMode == DiskMode.Single)
-        {
-            if (p.Firmware != Firmware.Mbr)
-                throw new SetupException("Jedna aktywna partycja C wymaga trybu Legacy BIOS/MBR.", "A single active C partition requires Legacy BIOS/MBR.");
             return [new("Primary", 0, "NTFS", "Windows", Windows: true, Active: true)];
-        }
 
-        var result = new List<Partition>();
-        bool custom = p.DiskMode == DiskMode.Custom;
-        bool separateMbr = !custom || p.SeparateBiosBoot;
         int minimumEfi = p.Target.OldMsr ? 100 : 200;
-        if ((p.Firmware == Firmware.Gpt || p.DetectsDiskFirmware) && p.BootPartitionMiB < minimumEfi)
+        if (p.EfiMiB < minimumEfi)
             throw SetupException.Format($"Partycja EFI musi mieć co najmniej {minimumEfi} MiB. Dla dysków 4Kn użyj co najmniej 300 MiB.", $"The EFI partition must be at least {minimumEfi} MiB. For 4Kn drives, use at least 300 MiB.");
-        if (p.Firmware == Firmware.Gpt)
-        {
-            result.Add(new("EFI", p.EfiMiB, "FAT32", "System"));
-            result.Add(new("MSR", p.Target.OldMsr ? 128 : 16));
-        }
-        else if (separateMbr)
-        {
-            if (p.BiosMiB < 100)
-                throw new SetupException("Partycja aktywna BIOS musi mieć co najmniej 100 MiB.", "The active BIOS partition must be at least 100 MiB.");
-            result.Add(new("Primary", p.BiosMiB, "NTFS", "System", Active: true));
-        }
         if (p.Recovery && p.RecoveryMiB < 300)
             throw new SetupException("Partycja odzyskiwania musi mieć co najmniej 300 MiB. Zalecane jest co najmniej 1024 MiB.", "The recovery partition must be at least 300 MiB. At least 1024 MiB is recommended.");
 
-        var recovery = new Partition("Primary", p.RecoveryMiB, "NTFS", "Recovery",
-            TypeId: p.Firmware == Firmware.Gpt ? "de94bba4-06d1-4d40-a16a-bfd50179d6ac" : "0x27");
-        List<DataPartition> data = custom ? p.DataPartitions : p.HasSeparateData
-            ? [new("Data", p.DataLetter, p.DataMiB)] : [];
-        int windowsSize = custom ? p.CustomWindowsMiB : p.HasSeparateData ? p.WindowsMiB : 0;
-        string windowsLabel = custom ? p.WindowsLabel : "Windows";
-        ValidateLabel(windowsLabel);
-        if (windowsSize < 0 || (windowsSize == 0 && data.Count > 0))
-            throw new SetupException("Jeśli dodajesz partycje danych, podaj stały rozmiar partycji C.", "Enter a fixed C partition size when adding data partitions.");
         int minWindows = p.Target.Windows11 ? 65536 : p.Target.OldMsr ? architecture == "x86" ? 16384 : 20480 : 32768;
-        if (windowsSize > 0 && windowsSize < minWindows)
+        if (p.HasSeparateData && p.WindowsMiB < minWindows)
             throw SetupException.Format($"Ustaw co najmniej {minWindows} MiB dla partycji C.", $"Set the C partition to at least {minWindows} MiB.");
-        bool recoveryAfterWindows = windowsSize > 0 || PrepareRecoveryInWinPe(p);
+
+        List<Partition> result = [new("EFI", p.EfiMiB, "FAT32", "System"), new("MSR", p.Target.OldMsr ? 128 : 16)];
+        var recovery = new Partition("Primary", p.RecoveryMiB, "NTFS", "Recovery",
+            TypeId: "de94bba4-06d1-4d40-a16a-bfd50179d6ac");
+        bool recoveryAfterWindows = p.HasSeparateData || PrepareRecoveryInWinPe(p) || p.InstallationMethod == "Generated";
         if (p.Recovery && !recoveryAfterWindows)
             result.Add(recovery);
-        result.Add(new("Primary", windowsSize, "NTFS", windowsLabel, Windows: true, Active: p.Firmware == Firmware.Mbr && !separateMbr));
+        result.Add(new("Primary", p.HasSeparateData ? p.WindowsMiB : 0, "NTFS", "Windows", Windows: true));
         if (p.Recovery && recoveryAfterWindows)
             result.Add(recovery);
-
-        bool logical = p.Firmware == Firmware.Mbr && result.Count + data.Count > 4;
-        if (logical)
-            result.Add(new("Extended", 0));
-        if (p.Firmware == Firmware.Gpt && result.Count + data.Count > 128)
-            throw new SetupException("Układ GPT może zawierać do 128 partycji.", "The GPT layout can contain up to 128 partitions.");
-        var letters = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        for (int i = 0; i < data.Count; i++)
-        {
-            var volume = data[i];
-            ValidateLabel(volume.Label, volume.Format);
-            if (volume.SizeMiB < 0 || (volume.SizeMiB == 0 && i != data.Count - 1) ||
-                volume.Format is not ("NTFS" or "FAT32") ||
-                volume.Letter.Length > 0 && (!Regex.IsMatch(volume.Letter, "^[D-WYZ]$") || !letters.Add(volume.Letter)))
-                throw new SetupException("Resztę dysku może zajmować tylko ostatnia partycja. Litery od D do Z bez X mogą wystąpić po jednej na partycję.",
-                    "Only the last partition can use the remaining space. Use each drive letter from D through Z only once, excluding X.");
-            result.Add(new(logical ? "Logical" : "Primary", volume.SizeMiB, volume.Format, volume.Label,
-                Letter: volume.Letter.Length == 0 ? null : volume.Letter, ExtendAfterCreate: logical && volume.SizeMiB == 0));
-        }
+        if (p.HasSeparateData)
+            result.Add(new("Primary", 0, "NTFS", "Data", Letter: "D"));
         return result;
-    }
-
-    internal static void ValidateLabel(string label, string format = "NTFS")
-    {
-        int limit = format == "FAT32" ? 11 : 32;
-        if (label.Length > limit || label.Any(char.IsControl))
-            throw SetupException.Format($"Nazwa partycji {format} może mieć do {limit} znaków.", $"{format} partition labels can contain up to {limit} characters.");
     }
 }

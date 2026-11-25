@@ -209,7 +209,7 @@ internal static partial class SelectionAudit
         output = Directory.CreateDirectory(output).FullName;
         string fixture = Directory.CreateDirectory(Path.Combine(output, "portable")).FullName;
         string binary = Path.Combine(fixture, "XMLator.exe");
-        string ini = Path.Combine(output, "Windows10.ini");
+        string ini = Path.Combine(output, "Windows11.ini");
         File.Copy(executable, binary);
         new InterfacePreferences(Path.Combine(fixture, "config.ini"))
         {
@@ -217,7 +217,7 @@ internal static partial class SelectionAudit
         }.Save();
         var profile = new SetupProfile
         {
-            TargetName = "Windows 10", AcceptEula = true, ImageMode = ImageMode.Index,
+            TargetName = "Windows 11", AcceptEula = true, ImageMode = ImageMode.Index, WindowsMiB = 65536, KeyMode = KeyMode.Skip,
             FirstRun = FirstRunMode.SkipSupported, CreateUsers = true, Logon = LogonMode.FirstAdministrator,
             Users = [new LocalUser { Name = "XMLatorLab" }]
         };
@@ -234,49 +234,60 @@ internal static partial class SelectionAudit
             if (!SpinWait.SpinUntil(() => boot.Current.HasKeyboardFocus && ReadValue(boot) == "UEFI / GPT", 3000))
                 throw new InvalidOperationException("The first focus on Disk and partitions is not the UEFI boot list.");
             Thread.Sleep(800);
-            VerifyChange(boot, "UEFI / GPT", "Legacy BIOS / MBR");
+            const string legacyMode = "Legacy BIOS / MBR (poza wymaganiami Windows 11)";
+            VerifyChange(boot, "UEFI / GPT", legacyMode);
             Thread.Sleep(800);
-            var method = Find(window, ControlType.ComboBox, "Metoda instalacji", "Installation method");
-            var layout = Find(window, ControlType.ComboBox, "Jak wybrać dysk i partycje?", "How should the disk and partitions be selected?");
+            Find(window, ControlType.Text, "Windows 11 w trybie Legacy to instalacja poza wymaganiami Microsoftu. Działanie zależy od obrazu i sprzętu.",
+                "Windows 11 in Legacy mode is outside Microsoft's system requirements. It depends on the image and hardware.");
+            var layout = Find(window, ControlType.ComboBox, "Układ partycji", "Partition layout");
             PostKey(boot, Keys.Tab);
-            if (!SpinWait.SpinUntil(() => method.Current.HasKeyboardFocus, 2000))
-                throw new InvalidOperationException("Tab did not move from the boot mode to the installation method.");
-            PostKey(method, Keys.Tab);
             if (!SpinWait.SpinUntil(() => layout.Current.HasKeyboardFocus, 2000))
                 throw new InvalidOperationException("Tab did not reach the partition layout.");
-            SendArrow(layout);
-            SendArrow(layout);
-            VerifyChange(layout, "Sformatuj tylko wskazaną partycję", "Pierwsza odpowiednia partycja na dowolnym dysku");
+            VerifyChange(layout, "Ręcznie w instalatorze", "Jedna aktywna partycja C na całym dysku");
             Thread.Sleep(900);
             Navigate(4, 9);
             Find(window, ControlType.Text, "Tryb rozruchu USB — Legacy BIOS / MBR (NTFS)", "USB boot mode — Legacy BIOS / MBR (NTFS)");
+            ApproveNewLayout();
             var legacy = Save("Legacy");
-            if ((bool?)legacy.Descendants(AnswerFile.U + "InstallToAvailablePartition").Single() != true ||
-                legacy.Descendants(AnswerFile.U + "DiskConfiguration").Any() || legacy.Descendants(AnswerFile.U + "InstallTo").Any())
-                throw new InvalidOperationException("Exported BIOS XML does not use automatic target selection on the prepared disk.");
+            if (!legacy.ToString().Contains("BypassTPMCheck", StringComparison.Ordinal) ||
+                (bool?)legacy.Descendants(AnswerFile.U + "Active").Single() != true ||
+                legacy.Descendants(AnswerFile.U + "CreatePartition").Count() != 1 ||
+                (int?)legacy.Descendants(AnswerFile.U + "InstallTo").Single().Element(AnswerFile.U + "PartitionID") != 1)
+                throw new InvalidOperationException("Exported BIOS XML does not create and use a single active C partition.");
 
             Navigate(9, 4);
             boot = Find(window, ControlType.ComboBox, "Tryb rozruchu instalatora", "Installer boot mode");
-            VerifyChange(boot, "Legacy BIOS / MBR", "UEFI / GPT", Keys.Up);
+            VerifyChange(boot, legacyMode, "UEFI / GPT", Keys.Up);
             Thread.Sleep(900);
-            layout = Find(window, ControlType.ComboBox, "Jak wybrać dysk i partycje?", "How should the disk and partitions be selected?");
+            layout = Find(window, ControlType.ComboBox, "Układ partycji", "Partition layout");
             if (!boot.Current.HasKeyboardFocus || ReadValue(layout) != "Ręcznie w instalatorze")
                 throw new InvalidOperationException("Switching back to UEFI did not restore manual selection while preserving focus.");
             FocusWhenReady(layout);
             Thread.Sleep(850);
-            SendArrow(layout);
-            SendArrow(layout);
-            VerifyChange(layout, "Sformatuj tylko wskazaną partycję", "Jedna duża C i partycje pomocnicze");
+            VerifyChange(layout, "Ręcznie w instalatorze", "Partycje pomocnicze i jedna duża C");
             Thread.Sleep(850);
             Navigate(4, 9);
             Find(window, ControlType.Text, "Tryb rozruchu USB — UEFI / GPT (FAT32)", "USB boot mode — UEFI / GPT (FAT32)");
-            VerifyCheckBox(Find(window, ControlType.CheckBox, "Potwierdzam usunięcie wszystkich partycji z wybranego dysku",
-                "Confirm deleting all partitions on the selected disk"), false);
+            ApproveNewLayout();
             var gpt = Save("UEFI");
             if (gpt.Descendants(AnswerFile.U + "InstallToAvailablePartition").Any() ||
                 (int?)gpt.Descendants(AnswerFile.U + "InstallTo").Single().Element(AnswerFile.U + "PartitionID") != 3)
                 throw new InvalidOperationException("Exported UEFI XML does not select the Windows partition in the GPT layout.");
-            Console.WriteLine("The portable EXE kept focus, filtered the layouts, matched USB modes, and exported both answer files.");
+            Navigate(9, 4);
+            layout = Find(window, ControlType.ComboBox, "Układ partycji", "Partition layout");
+            FocusWhenReady(layout);
+            VerifyChange(layout, "Partycje pomocnicze i jedna duża C", "Partycje pomocnicze oraz C i D");
+            Navigate(4, 9);
+            ApproveNewLayout();
+            var split = Save("UEFI-C-D");
+            if ((string?)split.Descendants(AnswerFile.U + "Letter").Single() != "D" ||
+                (int?)split.Descendants(AnswerFile.U + "CreatePartition").ElementAt(2).Element(AnswerFile.U + "Size") != 65536)
+                throw new InvalidOperationException("Exported UEFI XML does not create a fixed size C and a D with the remaining space.");
+            Console.WriteLine("The portable EXE kept focus, filtered the layouts, matched USB modes, and exported the three automatic layouts.");
+
+            void ApproveNewLayout() => VerifyCheckBox(Find(window, ControlType.CheckBox,
+                "Potwierdzam usunięcie wszystkich partycji z wybranego dysku",
+                "Confirm deleting all partitions on the selected disk"), false);
 
             void Navigate(int from, int to)
             {

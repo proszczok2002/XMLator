@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Xml.Linq;
 using Schneegans.Unattend;
 
@@ -17,6 +18,12 @@ internal static class ModernOptions
         if (cleanUp && p.Logon == LogonMode.Manual)
             throw new SetupException("Usuwanie kopii plików z hasłami wymaga automatycznego logowania administratora.", "Removing copies of files with passwords requires automatic administrator sign-in.");
         var scripts = p.EmbeddedScripts.Select(x => new Script(x.Text, Enum.Parse<ScriptPhase>(x.Phase), Enum.Parse<ScriptType>(x.Type))).ToList();
+        if (p.Target.Windows11 && p.DiskMode == DiskMode.Single && !alternatePe)
+        {
+            using var reader = new StreamReader(typeof(ModernOptions).Assembly.GetManifestResourceStream("XMLator.KeepSingleMbrPartition.ps1")!);
+            string keepSingle = reader.ReadToEnd().Replace("${ExpectedDisk}", p.DiskNumber.ToString(CultureInfo.InvariantCulture));
+            scripts.Insert(0, new Script(keepSingle, ScriptPhase.System, ScriptType.Ps1));
+        }
         if (p.DarkInstalledWindows)
         {
             scripts.Add(new Script("""
@@ -278,11 +285,13 @@ internal static class ModernOptions
                         throw new SetupException("Na stronie dysku potwierdź uruchomienie własnego skryptu DiskPart.", "Confirm running your DiskPart script on the disk page.");
                     layout = new CustomPartitionSettings(Required(p, "DiskPartText"));
                 }
-                else if (p.DiskMode == DiskMode.SystemAndWindows)
-                    layout = new UnattendedPartitionSettings(disk, p.DetectsDiskFirmware ? PartitionLayout.Automatic :
+                else if (p.WipesDisk)
+                    layout = new UnattendedPartitionSettings(disk,
                         p.Firmware == Firmware.Gpt ? PartitionLayout.GPT : PartitionLayout.MBR,
-                        p.Recovery ? RecoveryMode.Partition : RecoveryMode.None,
-                        p.BootPartitionMiB, p.RecoveryMiB);
+                        p.Firmware == Firmware.Gpt && p.Recovery ? RecoveryMode.Partition : RecoveryMode.None,
+                        p.EfiMiB, p.RecoveryMiB,
+                        WindowsSize: p.HasSeparateData ? p.WindowsMiB : 0,
+                        SinglePartition: p.DiskMode == DiskMode.Single);
                 IInstallFromSettings image = p.ImageMode switch
                 {
                     ImageMode.Edition => new EditionMetadataInstallFromSettings(
@@ -301,7 +310,8 @@ internal static class ModernOptions
                 return new GeneratePESettings(layout, image, paging, p.Has("DisableDefender"), p.Has("Disable8Dot3"),
                     p.Has("PauseFormat"), p.Has("PauseReboot"), p.Has("CompactOs"), p.Has("SkipIntegrity"));
             default:
-                return new DefaultPESettings(new InteractiveEditionSettings(), p.Target.Windows11 && p.Has("BypassRequirements"), p.Has("UseConfigurationSet"));
+                return new DefaultPESettings(new InteractiveEditionSettings(),
+                    p.Target.Windows11 && (p.UsesLegacyWindows11 || p.Has("BypassRequirements")), p.Has("UseConfigurationSet"));
         }
     }
 }

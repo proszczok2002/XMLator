@@ -298,7 +298,7 @@ internal static class InterfaceAudit
                     create.Right <= create.Parent!.ClientSize.Width && iso.Visible && drive.TabIndex < iso.Parent!.TabIndex &&
                     iso.Parent.TabIndex < create.TabIndex && !create.Enabled && wizard.AcceptButton is null,
                     $"File and USB groups, keyboard order and readiness for {variant}.");
-                Require((firmware is not null) == (UsbMedia.RequiredFirmware(profile) == "Any"), $"Firmware selector for {variant}.");
+                Require(firmware is null, $"USB inherits the installer boot mode for {variant}.");
                 drive.SelectedIndex = 1;
                 Require(!create.Enabled, $"A drive alone does not enable USB creation for {variant}.");
                 drive.SelectedIndex = 0;

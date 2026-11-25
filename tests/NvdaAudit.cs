@@ -129,17 +129,17 @@ internal static class NvdaAudit
                 profile.TargetName = "Windows 10";
                 show.Invoke(wizard, [true]);
                 var boot = Find<ComboBox>(wizard, "Tryb rozruchu instalatora");
-                var partition = Find<ComboBox>(wizard, "Jak wybrać dysk i partycje?");
-                await SelectLegacyLayout(wizard, DiskMode.Available);
+                var partition = Find<ComboBox>(wizard, "Układ partycji");
+                await SelectLegacyLayout(wizard, DiskMode.Single);
                 if (!Find<ListBox>(wizard, "Plan partycji w kolejności na dysku").Items.Cast<string>()
-                    .Any(line => line.Contains("przeszuka wszystkie dyski")))
-                    throw new InvalidOperationException("The disk plan does not explain the automatic all-disk selection.");
+                    .Any(line => line.Contains("Windows i rozruch (C:)")))
+                    throw new InvalidOperationException("The disk plan does not describe the single active C.");
                 boot.Select();
                 await Key("{UP}");
                 if (!boot.Focused || profile.DiskMode != DiskMode.Interactive ||
                     partition.SelectedItem is not Choice<DiskMode> { Value: DiskMode.Interactive })
                     throw new InvalidOperationException("Selecting UEFI did not keep focus and restore manual partition selection.");
-                Console.WriteLine("The boot mode comes first. Legacy BIOS exposes automatic selection, and returning to UEFI restores manual selection.");
+                Console.WriteLine("The boot mode comes first. Legacy BIOS exposes a single active C, and returning to UEFI restores manual selection.");
 
                 profile.TargetName = "Windows 11";
                 profile.ImageMode = ImageMode.Edition;
@@ -632,14 +632,13 @@ internal static class NvdaAudit
     private static async Task SelectLegacyLayout(Form wizard, DiskMode layout)
     {
         var boot = Find<ComboBox>(wizard, "Tryb rozruchu instalatora");
-        var partition = Find<ComboBox>(wizard, "Jak wybrać dysk i partycje?");
+        var partition = Find<ComboBox>(wizard, "Układ partycji");
         if (!boot.Focused || partition.Items.OfType<Choice<DiskMode>>().Any(choice => choice.Value == layout))
             throw new InvalidOperationException("UEFI must start focused and hide the BIOS-only layout.");
         await Pause();
         await Key("{DOWN}");
-        if (!boot.Focused || boot.SelectedItem is not Choice<Firmware?> { Value: Firmware.Mbr })
+        if (!boot.Focused || boot.SelectedItem is not Choice<Firmware> { Value: Firmware.Mbr })
             throw new InvalidOperationException("The first field did not select Legacy BIOS.");
-        await Key("{TAB}");
         await Key("{TAB}");
         if (!partition.Focused)
             throw new InvalidOperationException("Tab did not reach the partition list.");

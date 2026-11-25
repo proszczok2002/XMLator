@@ -61,7 +61,7 @@ internal record Target(string Name, bool Server, string[] Architectures)
 
 internal enum ImageMode { Interactive, ExactName, Index, Edition }
 internal enum KeyMode { Default, Enter, Firmware, Ask, Generic, Skip }
-internal enum DiskMode { Interactive, Existing, Single, SystemAndWindows, SystemWindowsData, Available, FormatExisting, Custom }
+internal enum DiskMode { Interactive, Single, SystemAndWindows, SystemWindowsData }
 internal enum Firmware { Gpt, Mbr }
 internal enum SetupPrompt { OnError, Always, Never }
 internal enum LogonMode { Manual, FirstAdministrator }
@@ -85,7 +85,6 @@ internal sealed class LocalUser
 internal sealed record OemFile(string Path, OemPhase Phase);
 internal sealed record EmbeddedScript(string Text, string Phase, string Type);
 internal sealed record CustomComponent(string Pass, string Name, string Markup);
-internal sealed record DataPartition(string Label, string Letter, int SizeMiB, string Format = "NTFS");
 
 internal sealed class SetupProfile
 {
@@ -110,40 +109,30 @@ internal sealed class SetupProfile
     public Firmware Firmware { get; set; }
     public DiskMode DiskMode { get; set; }
     public int DiskNumber { get; set; }
-    public int PartitionNumber { get; set; } = 1;
     public int EfiMiB { get; set; } = 300;
-    public int BiosMiB { get; set; } = 550;
     public bool Recovery { get; set; } = true;
     public int RecoveryMiB { get; set; } = 1024;
     public int WindowsMiB { get; set; } = 131072;
-    public int DataMiB { get; set; }
-    public string DataLetter { get; set; } = "D";
     public SetupPrompt DiskPrompt { get; set; }
     public SetupPrompt ImagePrompt { get; set; }
-    public int CustomWindowsMiB { get; set; }
-    public string WindowsLabel { get; set; } = "Windows";
-    public bool SeparateBiosBoot { get; set; } = true;
-    public List<DataPartition> DataPartitions { get; set; } = [];
     [JsonIgnore] internal string InstallationMethod => Target.ModernClient ? Option("PE", "Normal") : "Normal";
-    [JsonIgnore] public bool WipesDisk => DiskMode is DiskMode.Single or DiskMode.SystemAndWindows or DiskMode.SystemWindowsData or DiskMode.Custom;
-    [JsonIgnore] public bool FormatsPartition => DiskMode == DiskMode.FormatExisting;
-    [JsonIgnore] public bool NeedsDiskNumber => WipesDisk || DiskMode is DiskMode.Existing or DiskMode.FormatExisting;
-    [JsonIgnore] public bool RequiresDiskConsent => WipesDisk || FormatsPartition || RequiresCustomPeConsent;
+    [JsonIgnore] public bool WipesDisk => DiskMode is DiskMode.Single or DiskMode.SystemAndWindows or DiskMode.SystemWindowsData;
+    [JsonIgnore] public bool NeedsDiskNumber => WipesDisk && (InstallationMethod == "Normal" ||
+        Option("TargetDisk", "Fixed") == "Fixed" || Option("TargetDisk") == "Checked" && !Has("DiskAnyIndex"));
+    [JsonIgnore] public bool RequiresDiskConsent => WipesDisk || RequiresCustomPeConsent;
     [JsonIgnore] public bool RequiresCustomPeConsent => InstallationMethod == "Custom" ||
         InstallationMethod == "Generated" && Has("CustomDiskPart");
-    [JsonIgnore] internal bool SupportsAutomaticFirmware => InstallationMethod == "Generated" && !Has("CustomDiskPart") &&
-        SupportsLayoutFirmware(Firmware.Gpt) && SupportsLayoutFirmware(Firmware.Mbr);
-    [JsonIgnore] internal bool UsesAutomaticFirmware => SupportsAutomaticFirmware && Has("DetectFirmware");
-    [JsonIgnore] internal bool DetectsDiskFirmware => UsesAutomaticFirmware && DiskMode == DiskMode.SystemAndWindows;
-    [JsonIgnore] internal int BootPartitionMiB => Firmware == Firmware.Gpt ? EfiMiB : BiosMiB;
+    [JsonIgnore] internal bool UsesLegacyWindows11 => Target.Windows11 && Firmware == Firmware.Mbr && SupportsLayoutFirmware(Firmware.Mbr);
+    [JsonIgnore] internal bool ChoosesDiskLayout => InstallationMethod == "Normal" ||
+        InstallationMethod == "Generated" && !Has("CustomDiskPart");
     [JsonIgnore] internal SetupPrompt EffectiveImagePrompt => DiskMode == DiskMode.Interactive && ImagePrompt == SetupPrompt.Never
         ? SetupPrompt.OnError : ImagePrompt;
 
     internal bool SupportsDiskMode(DiskMode mode) => mode == DiskMode.Interactive ||
-        SupportsLayoutFirmware(Firmware) && (InstallationMethod switch
+        ChoosesDiskLayout && SupportsLayoutFirmware(Firmware) && (mode switch
         {
-            "Normal" => mode is not (DiskMode.Available or DiskMode.Single) || Firmware == Firmware.Mbr,
-            "Generated" => mode == DiskMode.SystemAndWindows && !Has("CustomDiskPart"),
+            DiskMode.Single => Firmware == Firmware.Mbr,
+            DiskMode.SystemAndWindows or DiskMode.SystemWindowsData => Firmware == Firmware.Gpt,
             _ => false
         });
 
@@ -170,7 +159,7 @@ internal sealed class SetupProfile
 
     internal bool SupportsFirmware(Firmware mode, string architecture) => mode == Firmware.Gpt
         ? Target.CanUseGpt(architecture)
-        : architecture is not ("arm64" or "ia64") && (!Target.Windows11 || Has("BypassRequirements"));
+        : architecture is "amd64" or "x86";
     private string? confirmedDiskLayout;
     [JsonIgnore]
     public bool ConfirmWipe
@@ -182,11 +171,10 @@ internal sealed class SetupProfile
     private string DiskLayoutIdentity() => JsonSerializer.Serialize(new
     {
         TargetName, Architecture, AdditionalArchitectures = ExtraArchitectures.Order().ToArray(),
-        DiskMode, DiskNumber, PartitionNumber, Firmware, EfiMiB, BiosMiB, Recovery, RecoveryMiB, WindowsMiB, DataMiB, DataLetter,
-        CustomWindowsMiB, WindowsLabel, SeparateBiosBoot, DataPartitions,
+        DiskMode, DiskNumber, Firmware, EfiMiB, Recovery, RecoveryMiB, WindowsMiB,
         PeOptions = new[] { "PE", "PEText", "CustomDiskPart", "DiskPartText", "TargetDisk", "TargetDiskScript",
             "DiskMinGiB", "DiskMaxGiB", "DiskAnyIndex", "AllowExistingPartitions", "DiskInterface", "DiskMedia",
-            "DetectFirmware", "BypassRequirements" }.Select(key => Option(key)).ToArray()
+            "BypassRequirements" }.Select(key => Option(key)).ToArray()
     });
 
     public bool SetLocale { get; set; }
@@ -283,7 +271,9 @@ internal static class IniProfile
         return user;
     }
 
-    public static SetupProfile Load(string path)
+    public static SetupProfile Load(string path) => Load(path, out _);
+
+    public static SetupProfile Load(string path, out bool resetDiskSelection)
     {
         if (new FileInfo(path).Length > 16 * 1024 * 1024)
             throw new InvalidDataException("INI > 16 MiB.");
@@ -294,6 +284,9 @@ internal static class IniProfile
         string section = "";
         bool compatible = false;
         bool replaceBuiltInAccount = false;
+        bool replacedDiskMode = false;
+        int oldDataSize = 0;
+        string? oldDataLetter = "D";
         foreach (string raw in File.ReadLines(path))
         {
             string line = raw.Trim();
@@ -323,6 +316,16 @@ internal static class IniProfile
                 replaceBuiltInAccount = true;
                 value = "\"FirstAdministrator\"";
             }
+            if (name == nameof(SetupProfile.DiskMode) && JsonSerializer.Deserialize<string>(value)?.ToUpperInvariant() is
+                "EXISTING" or "FORMATEXISTING" or "AVAILABLE" or "CUSTOM")
+            {
+                replacedDiskMode = true;
+                value = "\"Interactive\"";
+            }
+            if (name == "DataMiB")
+                oldDataSize = JsonSerializer.Deserialize<int>(value);
+            if (name == "DataLetter")
+                oldDataLetter = JsonSerializer.Deserialize<string>(value);
             writer.WritePropertyName(name);
             writer.WriteRawValue(value);
         }
@@ -336,8 +339,7 @@ internal static class IniProfile
             ?? throw new InvalidDataException("XMLator INI.");
         if (!Target.All.Any(t => t.Name == profile.TargetName) ||
             profile.Users.Any(x => x is null) || profile.OemFiles.Any(x => x is null) ||
-            profile.EmbeddedScripts.Any(x => x is null) || profile.Components.Any(x => x is null) ||
-            profile.DataPartitions.Any(x => x is null))
+            profile.EmbeddedScripts.Any(x => x is null) || profile.Components.Any(x => x is null))
             throw new InvalidDataException("Nieprawidłowe dane profilu / Invalid profile data.");
         profile.Advanced.Remove("WifiPassword");
         profile.Advanced.Remove("WifiXml");
@@ -362,6 +364,15 @@ internal static class IniProfile
             if (!profile.Users.Any(user => user.Administrator))
                 profile.Users.Add(new LocalUser { AskName = true, AskPassword = true });
         }
+        bool usedAutoFirmware = profile.Advanced.Remove("DetectFirmware", out string? detect) && detect == "1" &&
+            profile.InstallationMethod == "Generated" && profile.DiskMode == DiskMode.SystemAndWindows;
+        if (usedAutoFirmware || profile.HasSeparateData && (oldDataSize != 0 ||
+            !string.Equals(oldDataLetter, "D", StringComparison.OrdinalIgnoreCase)))
+        {
+            profile.DiskMode = DiskMode.Interactive;
+            replacedDiskMode = true;
+        }
+        resetDiskSelection = profile.UpdateDiskOptions() || replacedDiskMode;
         return profile;
     }
 }

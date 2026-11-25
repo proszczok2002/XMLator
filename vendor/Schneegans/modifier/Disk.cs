@@ -67,7 +67,9 @@ public record class UnattendedPartitionSettings(
   PartitionLayout PartitionLayout,
   RecoveryMode RecoveryMode,
   int SystemSize = Constants.SystemPartitionSize,
-  int RecoverySize = Constants.RecoveryPartitionSize
+  int RecoverySize = Constants.RecoveryPartitionSize,
+  int WindowsSize = 0,
+  bool SinglePartition = false
 ) : IPartitionSettings;
 
 public class InteractivePartitionSettings : IPartitionSettings;
@@ -145,6 +147,7 @@ static class DriveLetters
   internal const char System = 'S';
   internal const char Windows = 'W';
   internal const char Recovery = 'R';
+  internal const char Data = 'V';
 }
 
 /// <summary>
@@ -337,6 +340,22 @@ class DiskModifier(ModifierContext context) : Modifier(context)
       _ => throw new NotSupportedException(),
     };
 
+    if (settings.SinglePartition)
+    {
+      return
+      [
+        $"SELECT DISK={targetDisk}",
+        "CLEAN",
+        "CONVERT MBR",
+        "CREATE PARTITION PRIMARY",
+        @"FORMAT QUICK FS=NTFS LABEL=""Windows""",
+        $"ASSIGN LETTER={DriveLetters.Windows}",
+        "ACTIVE"
+      ];
+    }
+
+    string windows = settings.WindowsSize > 0 ? $"CREATE PARTITION PRIMARY SIZE={settings.WindowsSize}" : "CREATE PARTITION PRIMARY";
+    string recovery = settings.WindowsSize > 0 ? $"CREATE PARTITION PRIMARY SIZE={settings.RecoverySize}" : "CREATE PARTITION PRIMARY";
     return settings.PartitionLayout switch
     {
       PartitionLayout.MBR =>
@@ -365,15 +384,18 @@ class DiskModifier(ModifierContext context) : Modifier(context)
         @"FORMAT QUICK FS=FAT32 LABEL=""System""",
         $"ASSIGN LETTER={DriveLetters.System}",
         "CREATE PARTITION MSR SIZE=16",
-        "CREATE PARTITION PRIMARY",
-        (IfRecovery($"SHRINK MINIMUM={settings.RecoverySize}")),
+        windows,
         @"FORMAT QUICK FS=NTFS LABEL=""Windows""",
         $"ASSIGN LETTER={DriveLetters.Windows}",
-        (IfRecovery("CREATE PARTITION PRIMARY")),
+        (IfRecovery(settings.WindowsSize == 0 ? $"SHRINK DESIRED={settings.RecoverySize} MINIMUM={settings.RecoverySize}" : "")),
+        (IfRecovery(recovery)),
         (IfRecovery(@"FORMAT QUICK FS=NTFS LABEL=""Recovery""")),
         (IfRecovery($"ASSIGN LETTER={DriveLetters.Recovery}")),
         (IfRecovery(@"SET ID=""de94bba4-06d1-4d40-a16a-bfd50179d6ac""")),
-        (IfRecovery("GPT ATTRIBUTES=0x8000000000000001"))
+        (IfRecovery("GPT ATTRIBUTES=0x8000000000000001")),
+        (settings.WindowsSize > 0 ? "CREATE PARTITION PRIMARY" : ""),
+        (settings.WindowsSize > 0 ? @"FORMAT QUICK FS=NTFS LABEL=""Data""" : ""),
+        (settings.WindowsSize > 0 ? $"ASSIGN LETTER={DriveLetters.Data}" : "")
       ],
       _ => throw new NotSupportedException()
     };
@@ -382,6 +404,9 @@ class DiskModifier(ModifierContext context) : Modifier(context)
   internal static List<string> GetPEScript(Configuration configuration, GeneratePESettings pe, UnattendGenerator generator)
   {
     StringWriter writer = new();
+    bool singlePartition = pe.PartitionSettings is UnattendedPartitionSettings { SinglePartition: true };
+    bool hasDataPartition = pe.PartitionSettings is UnattendedPartitionSettings { WindowsSize: > 0 };
+    char bootVolume = singlePartition ? DriveLetters.Windows : DriveLetters.System;
 
     char[] letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray();
     char[] skippedDrives = ['A', 'B'];
@@ -558,7 +583,10 @@ class DiskModifier(ModifierContext context) : Modifier(context)
           }
         }
         CheckDriveLetterAssignment(DriveLetters.Windows, "Windows");
-        CheckDriveLetterAssignment(DriveLetters.System, "system");
+        if (!singlePartition)
+        {
+          CheckDriveLetterAssignment(DriveLetters.System, "system");
+        }
       }
 
       void IncludeDiskpartScript(EmbeddedScript script)
@@ -611,6 +639,12 @@ class DiskModifier(ModifierContext context) : Modifier(context)
 
         case UnattendedPartitionSettings settings:
           string message = "diskpart will now wipe, partition and format disk %TARGET_DISK%";
+          if (hasDataPartition)
+          {
+            writer.WriteLine($"""
+              if exist {DriveLetters.Data}:\ call :fail "{DriveLetters.Data}: must be free in Windows PE for the data partition."
+              """);
+          }
           if (settings.PartitionLayout == PartitionLayout.Automatic)
           {
             foreach (PartitionLayout layout in new PartitionLayout[] { PartitionLayout.GPT, PartitionLayout.MBR })
@@ -686,12 +720,30 @@ class DiskModifier(ModifierContext context) : Modifier(context)
       dism.exe /Apply-Image /ImageFile:%IMAGE_FILE% %SWM_PARAM% %IMG_PARAM% /ApplyDir:{{DriveLetters.Windows}}:\{{(pe.CompactOs ? " /Compact" : "")}}{{(pe.SkipIntegrityCheck ? "" : " /CheckIntegrity /Verify")}} || call :fail "dism.exe encountered an error."
 
       call :print "Making system partition bootable"
-      bcdboot.exe {{DriveLetters.Windows}}:\Windows /s {{DriveLetters.System}}: || call :fail "bcdboot.exe encountered an error."
+      bcdboot.exe {{DriveLetters.Windows}}:\Windows /s {{bootVolume}}: || call :fail "bcdboot.exe encountered an error."
       if %LAYOUT% == GPT (
           bcdedit.exe /set {fwbootmgr} bootsequence {bootmgr} || call :fail "bcdedit.exe encountered an error."
       )
 
       """);
+
+    if (hasDataPartition)
+    {
+      // Copy the new volume's stable mount-manager identity into the fresh image before Windows assigns other letters.
+      writer.WriteLine($"""
+        call :print "Assigning the data partition to D: in the installed system"
+        set "DATA_VOLUME="
+        for /f "tokens=3" %%t in ('reg.exe query HKLM\SYSTEM\MountedDevices /v "\DosDevices\{DriveLetters.Data}:"') do set "DATA_VOLUME=%%t"
+        if not defined DATA_VOLUME call :fail "Unable to identify the new data volume."
+        reg.exe load HKLM\XMLatorTargetSystem "{DriveLetters.Windows}:\Windows\System32\config\SYSTEM" || call :fail "Unable to load the installed SYSTEM hive."
+        reg.exe add HKLM\XMLatorTargetSystem\MountedDevices /v "\DosDevices\D:" /t REG_BINARY /d "%DATA_VOLUME%" /f || (
+            reg.exe unload HKLM\XMLatorTargetSystem
+            call :fail "Unable to assign D: to the data partition."
+        )
+        reg.exe unload HKLM\XMLatorTargetSystem || call :fail "Unable to unload the installed SYSTEM hive."
+
+        """);
+    }
 
     writer.WriteLine($"""
       if defined MSU_FOLDER (
@@ -717,7 +769,10 @@ class DiskModifier(ModifierContext context) : Modifier(context)
           switch (settings.RecoveryMode)
           {
             case RecoveryMode.None:
-              DeleteWinRE();
+              if (!settings.SinglePartition)
+              {
+                DeleteWinRE();
+              }
               break;
             case RecoveryMode.Partition:
               // Nothing to do – Windows will automatically install RE on the recovery partition

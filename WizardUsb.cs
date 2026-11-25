@@ -9,13 +9,11 @@ internal sealed partial class Wizard
     private UsbDisk? usbTarget;
     private UsbDisk[]? usbDisks;
     private Task<UsbDisk[]>? usbScan;
-    private Firmware usbFirmware = Firmware.Gpt;
     private string usbIsoPath = "";
 
     private void ResetUsbOptions()
     {
         usbTarget = null;
-        usbFirmware = Firmware.Gpt;
         usbIsoPath = "";
     }
 
@@ -51,20 +49,8 @@ internal sealed partial class Wizard
         var isoRefresh = f.Button(L("Odśwież źró&dła ISO", "Refresh IS&O sources"));
         var isoStatus = f.Note("");
         isoStatus.Visible = false;
-        string allowed = UsbMedia.RequiredFirmware(profile);
-        var modes = new List<Choice<Firmware>>();
-        if (allowed != "Mbr")
-            modes.Add(new(Firmware.Gpt, "UEFI / GPT (FAT32)"));
-        if (allowed != "Gpt")
-            modes.Add(new(Firmware.Mbr, "Legacy BIOS / MBR (NTFS)"));
-        if (!modes.Any(mode => mode.Value == usbFirmware))
-            usbFirmware = modes[0].Value;
-        if (modes.Count == 1)
-            f.Note(LF($"Tryb rozruchu USB — {modes[0].Label}", $"USB boot mode — {modes[0].Label}"));
-        else
-            Explain(f.Select(L("Tryb rozruc&hu USB", "USB boot &mode"), usbFirmware, modes, value => usbFirmware = value),
-                "UEFI/GPT pasuje do nowszych komputerów, a BIOS/Legacy/MBR do starszego trybu rozruchu.",
-                "Use UEFI/GPT for modern firmware or BIOS/Legacy/MBR for legacy boot.");
+        string bootMode = UsbMedia.RequiredFirmware(profile) == Firmware.Gpt ? "UEFI / GPT (FAT32)" : "Legacy BIOS / MBR (NTFS)";
+        f.Note(LF($"Tryb rozruchu USB — {bootMode}", $"USB boot mode — {bootMode}"));
         var create = Explain(f.Button(L("U&twórz bootowalny pendrive", "&Create a bootable USB drive")),
             "Zapisuje pliki instalatora, bieżące ustawienia jako Autounattend.xml i dodatki bezpośrednio na pendrivie.",
             "Writes Windows Setup, your current settings as Autounattend.xml, and extra files directly to the USB drive.");
@@ -330,7 +316,7 @@ internal sealed partial class Wizard
             var document = BuildInstallationAnswer();
             if (document is null)
                 return;
-            Firmware mode = usbFirmware;
+            Firmware mode = UsbMedia.RequiredFirmware(profile);
             string efi = profile.Architecture switch { "x86" => "ia32", "arm64" => "aa64", "ia64" => "ia64", _ => "x64" };
             SetBusy(true);
             ShowUsbProgress(new(UsbStage.Prepare));

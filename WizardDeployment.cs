@@ -460,10 +460,7 @@ internal sealed partial class Wizard
 
     private string DiskApprovalLabel() => profile.RequiresCustomPeConsent
         ? L("Potwierdz&am użycie własnego skryptu, który może usunąć partycje", "Confirm running the custom script, which c&an erase partitions")
-        : profile.FormatsPartition
-            ? LF($"Potwierdz&am formatowanie partycji {profile.PartitionNumber} na dysku {profile.DiskNumber}",
-                $"Confirm form&atting partition {profile.PartitionNumber} on disk {profile.DiskNumber}")
-            : L("Potwierdz&am usunięcie wszystkich partycji z wybranego dysku", "Confirm deleting &all partitions on the selected disk");
+        : L("Potwierdz&am usunięcie wszystkich partycji z wybranego dysku", "Confirm deleting &all partitions on the selected disk");
 
     private CheckBox DiskApproval(Fields f) => Explain(f.Check(DiskApprovalLabel(), profile.ConfirmWipe, value => profile.ConfirmWipe = value),
         "Zgoda obejmuje dysk i układ widoczne w kreatorze. Po zmianie dysku lub układu zaznacz zgodę ponownie.",

@@ -104,15 +104,35 @@ internal static class WizardDialogAudit
             if (diskSettingsOnly)
             {
                 profile.TargetName = "Windows 10";
-                foreach (var mode in new[] { DiskMode.Interactive, DiskMode.Available })
+                foreach (var (firmware, mode) in new[]
                 {
-                    profile.Firmware = mode == DiskMode.Available ? Firmware.Mbr : Firmware.Gpt;
+                    (Firmware.Gpt, DiskMode.Interactive),
+                    (Firmware.Gpt, DiskMode.SystemAndWindows),
+                    (Firmware.Gpt, DiskMode.SystemWindowsData),
+                    (Firmware.Mbr, DiskMode.Interactive),
+                    (Firmware.Mbr, DiskMode.Single)
+                })
+                {
+                    profile.Firmware = firmware;
                     profile.DiskMode = mode;
                     profile.ImageMode = ImageMode.Index;
                     Show(3);
                     CheckFields(wizard);
+                    var boot = Controls(wizard).OfType<ComboBox>().Single(box => box.SelectedItem is Choice<Firmware>);
+                    var layout = Controls(wizard).OfType<ComboBox>().Single(box => box.SelectedItem is Choice<DiskMode>);
+                    var sizes = Controls(wizard).OfType<NumericUpDown>().Where(input => input.Visible).ToArray();
+                    int fields = mode switch
+                    {
+                        DiskMode.Single => 1,
+                        DiskMode.SystemAndWindows => 3,
+                        DiskMode.SystemWindowsData => 4,
+                        _ => 0
+                    };
+                    if (!boot.Focused || boot.Items.Count != 2 || layout.Items.Count != (firmware == Firmware.Gpt ? 3 : 2) ||
+                        layout.SelectedItem is not Choice<DiskMode> selected || selected.Value != mode || sizes.Length != fields)
+                        throw new InvalidOperationException($"Incorrect disk screen in {language.Label}/{theme}/{firmware}/{mode}.");
                     screens++;
-                    CheckDiskSettings(mode == DiskMode.Available);
+                    CheckDiskSettings(mode != DiskMode.Interactive);
                 }
                 continue;
             }
@@ -147,10 +167,6 @@ internal static class WizardDialogAudit
             Show(3);
             CheckDiskSettings(automaticSelected: false);
             CheckMethodSettings();
-            profile.DiskMode = DiskMode.Custom;
-            Show(3);
-            Open(wizard, Lang("Dodaj, edytuj i ustaw kolejność partycji danych…", "Add, edit and reorder data partitions…"), AddEditor);
-            profile.DiskMode = DiskMode.Interactive;
 
             profile.CreateUsers = true;
             Show(5);
@@ -178,7 +194,7 @@ internal static class WizardDialogAudit
 
             void CheckMethodSettings()
             {
-                string methodDialog = Lang("Ustawienia wybranej metody…", "Settings for the selected method…");
+                string methodDialog = Lang("Metoda instalacji i ustawienia WinPE…", "Installation method and WinPE settings…");
                 string compatibility = Lang("Pomiń sprawdzenie zgodności sprzętu z Windows 11", "Skip Windows 11 hardware compatibility checks");
                 string checksExplained = Lang("Dotyczy TPM, Secure Boot i RAM. Działanie zależy od kompilacji Windows 11.",
                     "Applies to TPM, Secure Boot and RAM. The result depends on the Windows 11 build.");
