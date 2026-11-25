@@ -502,7 +502,7 @@ internal sealed partial class Wizard : Form
                 "Uruchom nośnik w trybie UEFI. EFI przechowuje pliki startowe, a MSR to rezerwa systemowa Microsoftu.",
                 "Start the media in UEFI mode. EFI holds the boot files, and MSR is reserved for use by Windows."),
             C(Firmware.Mbr, profile.Target.Windows11 ? "Legacy BIOS / MBR (poza wymaganiami Windows 11)" : "Legacy BIOS / MBR",
-                profile.Target.Windows11 ? "Legacy BIOS / MBR (outside Windows 11 requirements)" : "Legacy BIOS / MBR",
+                profile.Target.Windows11 ? "Legacy BIOS / MBR (Windows 11 requirements not met)" : "Legacy BIOS / MBR",
                 "Uruchom nośnik w trybie Legacy BIOS. Pliki rozruchowe Windows trafią na aktywną partycję MBR.",
                 "Start the media in Legacy BIOS mode. Windows boot files go on an active MBR partition.")
         ];
@@ -510,16 +510,16 @@ internal sealed partial class Wizard : Form
         [
             C(DiskMode.Interactive, "Ręcznie w instalatorze", "Manually in Setup",
                 "Podczas instalacji wybierzesz dysk, partycję i sposób formatowania.",
-                "During installation, choose the disk, partition and whether to format it."),
+                "During installation, choose the disk and partition, then decide whether to format the partition."),
             C(DiskMode.Single, "Jedna aktywna partycja C na całym dysku", "One active C partition on the entire disk",
                 "Instalator wyczyści cały wybrany dysk. Windows i pliki rozruchowe znajdą się na tej samej, aktywnej partycji C.",
                 "Setup wipes the entire selected disk. The single active C partition holds both Windows and the boot files."),
             C(DiskMode.SystemAndWindows, "Partycje pomocnicze i jedna duża C", "System partitions and one large C partition",
                 "Po wyczyszczeniu dysku powstaną EFI, MSR i opcjonalnie WinRE. Partycja C zajmie pozostałe miejsce.",
-                "After the disk is erased, Setup creates EFI, MSR and optional WinRE partitions. C uses the remaining space."),
+                "After the disk is erased, EFI and MSR partitions are created, along with a Windows recovery partition (WinRE) if enabled. C uses the remaining space."),
             C(DiskMode.SystemWindowsData, "Partycje pomocnicze oraz C i D", "System partitions, C and D",
                 "Po wyczyszczeniu dysku powstaną EFI, MSR i opcjonalnie WinRE. Podaj rozmiar C. Partycja D zajmie pozostałe miejsce.",
-                "After the disk is erased, Setup creates EFI, MSR and optional WinRE partitions. Set the size of C. D uses the remaining space.")
+                "After the disk is erased, EFI and MSR partitions are created, along with a Windows recovery partition (WinRE) if enabled. Set the size of C. D uses the remaining space.")
         ];
         var manualDiskPart = new Choice<DiskMode>(DiskMode.Interactive, L("Ręcznie w DiskPart", "Manually in DiskPart"), ManualDiskPartNote());
 

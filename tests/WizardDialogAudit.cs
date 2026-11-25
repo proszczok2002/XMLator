@@ -198,6 +198,8 @@ internal static class WizardDialogAudit
                 string compatibility = Lang("Pomiń sprawdzenie zgodności sprzętu z Windows 11", "Skip Windows 11 hardware compatibility checks");
                 string checksExplained = Lang("Dotyczy TPM, Secure Boot i RAM. Działanie zależy od kompilacji Windows 11.",
                     "Applies to TPM, Secure Boot and RAM. The result depends on the Windows 11 build.");
+                string dismDescription = Lang("Skrypt ze strony schneegans.de nakłada obraz przez DISM i tworzy pliki rozruchowe zgodnie z wybranym układem i trybem rozruchu.",
+                    "The script from schneegans.de applies the image with DISM and creates boot files for the selected layout and boot mode.");
                 profile.DiskMode = DiskMode.Interactive;
                 Show(3);
                 Open(wizard, methodDialog, dialog =>
@@ -213,6 +215,11 @@ internal static class WizardDialogAudit
                 {
                     if (Controls(dialog).OfType<CheckBox>().Any(control => control.Visible && control.AccessibleName == compatibility))
                         throw new InvalidOperationException("The Windows Setup compatibility check appeared in DISM mode.");
+                    var selectedMethod = Controls(dialog).OfType<ComboBox>().Select(box => box.SelectedItem)
+                        .OfType<Choice<string>>().Single(choice => choice.Value == "Generated");
+                    if (selectedMethod.Description != dismDescription ||
+                        !Controls(dialog).OfType<Label>().Any(label => label.Visible && label.Text == dismDescription))
+                        throw new InvalidOperationException("DISM must describe how it uses the selected layout and boot mode in both places.");
                 });
                 profile.Advanced["PE"] = "Custom";
                 Show(3);

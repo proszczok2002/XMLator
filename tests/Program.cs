@@ -1221,7 +1221,8 @@ internal static class Checks
         Assert(Descendants(wizard).OfType<Button>().Any(control => control.AccessibleName == "Installation method and WinPE settings…"),
             "Expose the optional installation methods in their own dialog");
         disk.SelectedItem = disk.Items.OfType<Choice<DiskMode>>().Single(choice => choice.Value == DiskMode.SystemAndWindows);
-        Assert(MouseHelp(disk)?.Contains("EFI, MSR") == true, "Describe the selected disk layout, including its system partitions");
+        Assert(MouseHelp(disk) is { } diskHelp && new[] { "EFI", "MSR", "WinRE" }.All(diskHelp.Contains),
+            "Describe the selected disk layout, including its system and recovery partitions");
         var efiSize = Descendants(wizard).OfType<NumericUpDown>().Single(control => control.AccessibleName == "EFI size in MiB");
         var efiEditor = efiSize.Controls.OfType<TextBox>().Single();
         Assert(efiEditor.Focus() && !efiEditor.ReadOnly && efiEditor.SelectedText == efiEditor.Text &&

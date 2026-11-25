@@ -238,7 +238,7 @@ internal static partial class SelectionAudit
             VerifyChange(boot, "UEFI / GPT", legacyMode);
             Thread.Sleep(800);
             Find(window, ControlType.Text, "Windows 11 w trybie Legacy to instalacja poza wymaganiami Microsoftu. Działanie zależy od obrazu i sprzętu.",
-                "Windows 11 in Legacy mode is outside Microsoft's system requirements. It depends on the image and hardware.");
+                "Microsoft requires UEFI for Windows 11. Installation in Legacy BIOS mode depends on the installation image and hardware.");
             var layout = Find(window, ControlType.ComboBox, "Układ partycji", "Partition layout");
             PostKey(boot, Keys.Tab);
             if (!SpinWait.SpinUntil(() => layout.Current.HasKeyboardFocus, 2000))

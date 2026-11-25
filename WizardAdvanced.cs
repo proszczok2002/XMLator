@@ -452,8 +452,7 @@ internal sealed partial class Wizard
         StringOption(custom, "PEText", "Treść skryptu CMD WinPE", "WinPE CMD script content", multi: true);
         normal.Note(L("Microsoft Windows Setup odczyta plik XML i sam uruchomi standardowe etapy instalacji. W razie problemu może wyświetlić ekran wymagający odpowiedzi.",
             "Microsoft Windows Setup reads the XML and runs the standard installation stages. An issue can bring up a prompt that needs an answer."));
-        generated.Note(L("Skrypt ze strony schneegans.de nakłada obraz przez DISM i tworzy pliki rozruchowe zgodnie z wybranym układem i trybem rozruchu.",
-            "The script from schneegans.de applies the image with DISM and creates boot files for the selected layout and boot mode."));
+        generated.Note(DismInstallationDescription());
         generated.Note(L("Jeśli chcesz podać klucz w tym trybie, użyj osobnego pola klucza aktywacji w kroku Edycja i klucz.",
             "To supply a key in this mode, use the separate activation key field on the Edition and key page."));
         custom.Note(L("Podejmujesz decyzje o partycjach i instalacji w treści skryptu CMD. W wersji standardowej WinPE PowerShell może być niedostępny.",

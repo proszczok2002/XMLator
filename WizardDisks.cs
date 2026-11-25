@@ -5,16 +5,20 @@ internal sealed partial class Wizard
     private string NoCommonBootMode() => L("Wybrane architektury wymagają różnych trybów rozruchu. Wybierz dysk i partycję w instalatorze.",
         "The selected architectures require different boot modes. Choose the disk and partition in Setup.");
 
-    private string ManualDiskSelectionNotice() => L("Wybór partycji zmieniono na ręczny w instalatorze.",
-        "Partition selection changed to manual in Setup.");
+    private string ManualDiskSelectionNotice() => profile.InstallationMethod == "Generated" ? ManualDiskPartNote()
+        : L("Wybór partycji zmieniono na ręczny w instalatorze.", "Partition selection changed to manual in Setup.");
 
     private string LegacyWindows11Note() => L(
         "Windows 11 w trybie Legacy to instalacja poza wymaganiami Microsoftu. Działanie zależy od obrazu i sprzętu.",
-        "Windows 11 in Legacy mode is outside Microsoft's system requirements. It depends on the image and hardware.");
+        "Microsoft requires UEFI for Windows 11. Installation in Legacy BIOS mode depends on the installation image and hardware.");
 
     private string ManualDiskPartNote() => L(
         "W trybie DISM przygotujesz dysk ręcznie w konsoli DiskPart.",
         "In DISM mode, prepare the disk manually in the DiskPart console.");
+
+    private string DismInstallationDescription() => L(
+        "Skrypt ze strony schneegans.de nakłada obraz przez DISM i tworzy pliki rozruchowe zgodnie z wybranym układem i trybem rozruchu.",
+        "The script from schneegans.de applies the image with DISM and creates boot files for the selected layout and boot mode.");
 
     private Choice<string>[] InstallationMethods()
     {
@@ -22,9 +26,8 @@ internal sealed partial class Wizard
             "Standardowy instalator odczyta XML, przygotuje wybrany układ i wykona kolejne etapy. W razie problemu może poprosić o odpowiedź.",
             "The standard installer reads the XML, prepares the selected layout and runs the installation stages. It can ask for input if there is a problem.");
         return profile.Target.ModernClient
-            ? [microsoft, C("Generated", "Skrypt DISM ze strony schneegans.de", "DISM script from schneegans.de",
-                "Skrypt sam nakłada obraz Windows i tworzy pliki rozruchowe. Użyj jednej dużej C z partycjami pomocniczymi albo skonfiguruj DiskPart.",
-                "The script applies the Windows image and creates boot files. Use one large C with system partitions or configure DiskPart."),
+            ? [microsoft, new("Generated", L("Skrypt DISM ze strony schneegans.de", "DISM script from schneegans.de"),
+                DismInstallationDescription()),
                 C("Custom", "Mój skrypt CMD w Windows PE", "My CMD script in Windows PE",
                 "Twój skrypt CMD odpowiada za wybór dysku, partycje i zastosowanie obrazu. To opcja dla własnych procedur wdrażania.",
                 "Your CMD script selects the disk, partitions it and applies the image. Use this for your own deployment process.")]
