@@ -204,6 +204,112 @@ internal static partial class SelectionAudit
         }
     }
 
+    internal static void BootMode(string executable, string output)
+    {
+        output = Directory.CreateDirectory(output).FullName;
+        string fixture = Directory.CreateDirectory(Path.Combine(output, "portable")).FullName;
+        string binary = Path.Combine(fixture, "XMLator.exe");
+        string ini = Path.Combine(output, "Windows10.ini");
+        File.Copy(executable, binary);
+        new InterfacePreferences(Path.Combine(fixture, "config.ini"))
+        {
+            Language = "pl", Theme = AppTheme.Dark, AutomaticUpdates = false
+        }.Save();
+        var profile = new SetupProfile
+        {
+            TargetName = "Windows 10", AcceptEula = true, ImageMode = ImageMode.Index,
+            FirstRun = FirstRunMode.SkipSupported, CreateUsers = true, Logon = LogonMode.FirstAdministrator,
+            Users = [new LocalUser { Name = "XMLatorLab" }]
+        };
+        LocaleCatalog.ApplyLanguage(profile, "en-US");
+        IniProfile.Save(ini, profile);
+        var launch = new ProcessStartInfo(binary);
+        launch.ArgumentList.Add(ini);
+        using var app = Process.Start(launch)!;
+        try
+        {
+            var window = WaitForWizard(app);
+            Navigate(1, 4);
+            var boot = Find(window, ControlType.ComboBox, "Tryb rozruchu instalatora", "Installer boot mode");
+            if (!SpinWait.SpinUntil(() => boot.Current.HasKeyboardFocus && ReadValue(boot) == "UEFI / GPT", 3000))
+                throw new InvalidOperationException("The first focus on Disk and partitions is not the UEFI boot list.");
+            Thread.Sleep(800);
+            VerifyChange(boot, "UEFI / GPT", "Legacy BIOS / MBR");
+            Thread.Sleep(800);
+            var method = Find(window, ControlType.ComboBox, "Metoda instalacji", "Installation method");
+            var layout = Find(window, ControlType.ComboBox, "Jak wybrać dysk i partycje?", "How should the disk and partitions be selected?");
+            PostKey(boot, Keys.Tab);
+            if (!SpinWait.SpinUntil(() => method.Current.HasKeyboardFocus, 2000))
+                throw new InvalidOperationException("Tab did not move from the boot mode to the installation method.");
+            PostKey(method, Keys.Tab);
+            if (!SpinWait.SpinUntil(() => layout.Current.HasKeyboardFocus, 2000))
+                throw new InvalidOperationException("Tab did not reach the partition layout.");
+            SendArrow(layout);
+            SendArrow(layout);
+            VerifyChange(layout, "Sformatuj tylko wskazaną partycję", "Pierwsza odpowiednia partycja na dowolnym dysku");
+            Thread.Sleep(900);
+            Navigate(4, 9);
+            Find(window, ControlType.Text, "Tryb rozruchu USB — Legacy BIOS / MBR (NTFS)", "USB boot mode — Legacy BIOS / MBR (NTFS)");
+            var legacy = Save("Legacy");
+            if ((bool?)legacy.Descendants(AnswerFile.U + "InstallToAvailablePartition").Single() != true ||
+                legacy.Descendants(AnswerFile.U + "DiskConfiguration").Any() || legacy.Descendants(AnswerFile.U + "InstallTo").Any())
+                throw new InvalidOperationException("Exported BIOS XML does not use automatic target selection on the prepared disk.");
+
+            Navigate(9, 4);
+            boot = Find(window, ControlType.ComboBox, "Tryb rozruchu instalatora", "Installer boot mode");
+            VerifyChange(boot, "Legacy BIOS / MBR", "UEFI / GPT", Keys.Up);
+            Thread.Sleep(900);
+            layout = Find(window, ControlType.ComboBox, "Jak wybrać dysk i partycje?", "How should the disk and partitions be selected?");
+            if (!boot.Current.HasKeyboardFocus || ReadValue(layout) != "Ręcznie w instalatorze")
+                throw new InvalidOperationException("Switching back to UEFI did not restore manual selection while preserving focus.");
+            FocusWhenReady(layout);
+            Thread.Sleep(850);
+            SendArrow(layout);
+            SendArrow(layout);
+            VerifyChange(layout, "Sformatuj tylko wskazaną partycję", "Jedna duża C i partycje pomocnicze");
+            Thread.Sleep(850);
+            Navigate(4, 9);
+            Find(window, ControlType.Text, "Tryb rozruchu USB — UEFI / GPT (FAT32)", "USB boot mode — UEFI / GPT (FAT32)");
+            VerifyCheckBox(Find(window, ControlType.CheckBox, "Potwierdzam usunięcie wszystkich partycji z wybranego dysku",
+                "Confirm deleting all partitions on the selected disk"), false);
+            var gpt = Save("UEFI");
+            if (gpt.Descendants(AnswerFile.U + "InstallToAvailablePartition").Any() ||
+                (int?)gpt.Descendants(AnswerFile.U + "InstallTo").Single().Element(AnswerFile.U + "PartitionID") != 3)
+                throw new InvalidOperationException("Exported UEFI XML does not select the Windows partition in the GPT layout.");
+            Console.WriteLine("The portable EXE kept focus, filtered the layouts, matched USB modes, and exported both answer files.");
+
+            void Navigate(int from, int to)
+            {
+                bool forward = to > from;
+                for (int index = from; index != to;)
+                {
+                    var button = Find(window, ControlType.Button, forward ? "Dalej" : "Wstecz", forward ? "Next" : "Back");
+                    ((InvokePattern)button.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
+                    index += forward ? 1 : -1;
+                    if (!SpinWait.SpinUntil(() => window.Current.Name.Contains($"Krok {index} z 9.", StringComparison.Ordinal), 3000))
+                        throw new InvalidOperationException("The wizard did not navigate to step " + index);
+                }
+            }
+
+            XDocument Save(string name)
+            {
+                string path = Path.Combine(Directory.CreateDirectory(Path.Combine(output, name)).FullName, AnswerFile.DefaultName);
+                var save = Find(window, ControlType.Button, "Zapisz XML…", "Save XML…");
+                var main = app.MainWindowHandle;
+                SaveThroughDialog(main, save, "Zapisz plik odpowiedzi XML", AnswerFile.DefaultName, path);
+                var result = WaitForOwnedDialog(window, "XMLator");
+                if (!File.Exists(path))
+                    throw new InvalidOperationException("The XML file was not saved.");
+                var ok = Find(result, ControlType.Button, "OK", "OK");
+                ((InvokePattern)ok.GetCurrentPattern(InvokePattern.Pattern)).Invoke();
+                if (!SpinWait.SpinUntil(() => window.Current.IsEnabled && GetLastActivePopup(main) == main, 3000))
+                    throw new InvalidOperationException("The save result did not return to the wizard.");
+                return XDocument.Load(path);
+            }
+        }
+        finally { CloseReleaseFixture(app); }
+    }
+
     internal static void SignIn(string executable)
     {
         var folder = Directory.CreateTempSubdirectory("XMLator-sign-in-ui-");
@@ -475,7 +581,7 @@ internal static partial class SelectionAudit
             for (int i = 0; i < 2; i++)
                 ((InvokePattern)Find(window, ControlType.Button, "Dalej", "Next").GetCurrentPattern(InvokePattern.Pattern)).Invoke();
             var drive = Find(window, ControlType.ComboBox, "Pendrive", "USB drive");
-            Find(window, ControlType.ComboBox, "Tryb rozruchu USB", "USB boot mode");
+            Find(window, ControlType.Text, "Tryb rozruchu USB — UEFI / GPT (FAT32)", "USB boot mode — UEFI / GPT (FAT32)");
             Find(window, ControlType.Edit, "Ścieżka do obrazu ISO Windows", "Windows ISO path");
             bool polish = keyPolish;
             Find(window, ControlType.Button, "Odśwież źródła ISO", "Refresh ISO sources");

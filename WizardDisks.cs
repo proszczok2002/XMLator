@@ -2,7 +2,11 @@ namespace XMLator;
 
 internal sealed partial class Wizard
 {
-    private string InstallationMethod() => profile.Target.ModernClient ? profile.Option("PE", "Normal") : "Normal";
+    private string NoCommonBootMode() => L("Wybrane architektury wymagają różnych trybów rozruchu. Wybierz dysk i partycję w instalatorze.",
+        "The selected architectures require different boot modes. Choose the disk and partition in Setup.");
+
+    private string AvailablePartitionRequirement() => L("Użyj przygotowanego dysku MBR z aktywną partycją rozruchową i miejscem na Windows.",
+        "Use a prepared MBR disk with an active boot partition and space for Windows.");
 
     private Choice<string>[] InstallationMethods()
     {
@@ -27,41 +31,22 @@ internal sealed partial class Wizard
             C(SetupPrompt.OnError, "Tylko w razie błędu (domyślnie)", "On error only (default)"),
             C(SetupPrompt.Always, "Zawsze", "Always"), C(SetupPrompt.Never, "Pomiń ekran instalatora", "Skip the Setup screen")
         };
-        SetupPrompt disk = profile.DiskPrompt, image = profile.ImagePrompt;
-        bool automatic = profile.DiskMode == DiskMode.Available;
+        SetupPrompt disk = profile.DiskPrompt, image = profile.EffectiveImagePrompt;
         bool configurationSet = profile.Has("UseConfigurationSet");
-        var diskPrompt = new Fields();
-        var imagePrompt = new Fields();
-        void UpdatePrompts()
-        {
-            diskPrompt.Table.Visible = !automatic && (profile.WipesDisk || profile.FormatsPartition);
-            imagePrompt.Table.Visible = automatic || profile.DiskMode is not (DiskMode.Interactive or DiskMode.Available) ||
-                profile.ImageMode != ImageMode.Interactive;
-        }
-        Explain(fields.Check(L("Pozwól instalatorowi wybrać partycję na dowolnym dysku", "Let Setup choose a partition on any disk"), automatic,
-                value => { automatic = value; UpdatePrompts(); }),
-            "Instalator przeszuka wszystkie dyski od dysku 0 i wybierze pierwszą partycję z wystarczającą ilością miejsca i bez instalacji Windows. Zastępuje to wybór dysku i układu partycji.",
-            "Setup searches all disks starting with disk 0 and uses the first partition with enough space and no Windows installation. This replaces the selected disk and partition layout.");
         if (profile.WipesDisk || profile.FormatsPartition)
-            Explain(diskPrompt.Select(L("Kiedy pokazać ekran partycjonowania?", "When should Setup show its partitioning screen?"), disk, options, value => disk = value),
+            Explain(fields.Select(L("Kiedy pokazać ekran partycjonowania?", "When should Setup show its partitioning screen?"), disk, options, value => disk = value),
                 "Windows Setup przetwarza ustawienia formatowania i tworzenia partycji przed pokazaniem ekranu.",
                 "Windows Setup processes formatting and partition creation settings before showing the screen.");
-        Explain(imagePrompt.Select(L("Kiedy pokazać ekran wyboru obrazu lub celu instalacji?", "When should Setup show image or destination selection?"), image,
-                options, value => image = value),
-                "Pominięcie ekranu może nadal pozostawić komunikaty o błędach krytycznych.",
-                "Critical errors can still appear when the screen is skipped.");
-        fields.Section(diskPrompt);
-        fields.Section(imagePrompt);
-        UpdatePrompts();
+        if (profile.DiskMode != DiskMode.Interactive || profile.ImageMode != ImageMode.Interactive)
+            Explain(fields.Select(L("Kiedy pokazać ekran wyboru obrazu lub celu instalacji?", "When should Setup show image or destination selection?"), image,
+                    profile.DiskMode == DiskMode.Interactive ? options[..2] : options, value => image = value),
+                    "Pominięcie ekranu może nadal pozostawić komunikaty o błędach krytycznych.",
+                    "Critical errors can still appear when the screen is skipped.");
         Explain(fields.Check(L("Użyj przygotowanego zestawu konfiguracji Windows SIM", "Use a prepared Windows SIM configuration set"), configurationSet, value => configurationSet = value),
             "Zaznacz, kiedy dysponujesz zestawem konfiguracji Windows SIM z dołączonymi plikami. Instalator poszuka takiego zestawu.",
             "Enable this if you have a Windows SIM configuration set with the referenced files. Setup will look for that set.");
         if (Ask(L("Zaawansowane ustawienia Windows Setup", "Advanced Windows Setup settings"), fields))
         {
-            if (automatic)
-                profile.DiskMode = DiskMode.Available;
-            else if (profile.DiskMode == DiskMode.Available)
-                profile.DiskMode = DiskMode.Interactive;
             profile.DiskPrompt = disk;
             profile.ImagePrompt = image;
             profile.Advanced["UseConfigurationSet"] = configurationSet ? "1" : "0";
@@ -70,8 +55,16 @@ internal sealed partial class Wizard
 
     private List<string> DiskSummary()
     {
-        string method = InstallationMethod();
+        string method = profile.InstallationMethod;
         var lines = new List<string> { InstallationMethods().Single(choice => choice.Value == method).Label };
+        if (profile.SupportsLayoutFirmware(profile.Firmware))
+        {
+            string boot = profile.UsesAutomaticFirmware ? L("wykrycie UEFI lub BIOS w Windows PE", "detect UEFI or BIOS in Windows PE") :
+                profile.Firmware == Firmware.Gpt ? "UEFI / GPT" : "Legacy BIOS / MBR";
+            lines.Add(LF($"Tryb rozruchu instalatora — {boot}.", $"Installer boot mode — {boot}."));
+        }
+        else
+            lines.Add(NoCommonBootMode());
         if (method == "Custom")
         {
             lines.Add(L("Dysk, partycje i nakładanie obrazu określa Twój skrypt CMD.", "Your CMD script controls the disk, partitions and image application."));
@@ -92,10 +85,7 @@ internal sealed partial class Wizard
                     "Script" => L("Dysk do wyczyszczenia wskazuje Twój skrypt wyboru dysku.", "Your disk selection script identifies the disk to erase."),
                     _ => LF($"Skrypt wyczyści dysk {profile.DiskNumber}.", $"The script erases disk {profile.DiskNumber}.")
                 });
-                string firmware = profile.DetectsDiskFirmware ? L("wykrycie UEFI lub BIOS", "detect UEFI or BIOS") :
-                    profile.Firmware == Firmware.Gpt ? "UEFI / GPT" : "BIOS / MBR";
-                int systemMiB = profile.Firmware == Firmware.Gpt ? profile.EfiMiB : profile.BiosMiB;
-                lines.Add(LF($"Rozruch — {firmware}. Partycja rozruchowa — {systemMiB} MiB.", $"Boot — {firmware}. Boot partition — {systemMiB} MiB."));
+                lines.Add(LF($"Partycja rozruchowa — {profile.BootPartitionMiB} MiB.", $"Boot partition — {profile.BootPartitionMiB} MiB."));
                 lines.Add(profile.Recovery ? LF($"Duża C, a po niej partycja odzyskiwania — {profile.RecoveryMiB} MiB.",
                     $"Large C, followed by a {profile.RecoveryMiB} MiB recovery partition.") :
                     L("Duża C zajmie pozostałe miejsce. Skrypt pominie WinRE.", "Large C uses the remaining space. The script skips WinRE."));
@@ -109,15 +99,17 @@ internal sealed partial class Wizard
         lines.Add(profile.DiskMode switch
         {
             DiskMode.Interactive => L("Dysk i partycja do wybrania w instalatorze.", "Choose the disk and partition in Setup."),
-            DiskMode.Available => L("Windows Setup przeszuka wszystkie dyski i wybierze pierwszą partycję spełniającą warunki instalacji.",
-                "Windows Setup searches all disks and uses the first partition suitable for installation."),
+            DiskMode.Available => L("Windows Setup przeszuka wszystkie dyski. Wybierze pierwszą partycję z odpowiednią ilością miejsca i bez instalacji Windows.",
+                "Windows Setup searches all disks. It uses the first partition with enough space and no Windows installation."),
             DiskMode.Existing => LF($"Instalacja na partycji {profile.PartitionNumber} dysku {profile.DiskNumber}. Kreator pomija automatyczne formatowanie.",
                 $"Install to partition {profile.PartitionNumber} on disk {profile.DiskNumber}. The wizard skips automatic formatting."),
             DiskMode.FormatExisting => LF($"Formatowanie NTFS partycji {profile.PartitionNumber} na dysku {profile.DiskNumber}. Windows zostanie zainstalowany na tej partycji.",
                 $"Format partition {profile.PartitionNumber} on disk {profile.DiskNumber} as NTFS and install Windows there."),
-            _ => LF($"Usunięcie wszystkich partycji z dysku {profile.DiskNumber}. Nowy układ {(profile.Firmware == Firmware.Gpt ? "UEFI/GPT" : "BIOS/MBR")}.",
-                $"Erase all partitions on disk {profile.DiskNumber}. Create a new {(profile.Firmware == Firmware.Gpt ? "UEFI/GPT" : "BIOS/MBR")} layout.")
+            _ => LF($"Usunięcie wszystkich partycji z dysku {profile.DiskNumber} i utworzenie nowego układu.",
+                $"Erase all partitions on disk {profile.DiskNumber} and create the new layout.")
         });
+        if (profile.DiskMode == DiskMode.Available)
+            lines.Add(AvailablePartitionRequirement());
         if (!profile.WipesDisk)
             return lines;
 

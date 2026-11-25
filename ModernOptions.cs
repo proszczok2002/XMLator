@@ -11,7 +11,7 @@ internal static class ModernOptions
     internal static void Apply(SetupProfile p, string architecture, XElement root, Func<string, string, XElement> component)
     {
         var u = AnswerFile.U;
-        bool alternatePe = p.Option("PE", "Normal") != "Normal";
+        bool alternatePe = p.InstallationMethod != "Normal";
         bool firstLogonFile = p.OemFiles.Any(f => f.Phase == OemPhase.FirstLogon);
         bool cleanUp = p.Has("CleanSensitive");
         if (cleanUp && p.Logon == LogonMode.Manual)
@@ -248,17 +248,16 @@ internal static class ModernOptions
 
     private static IPESettings GetPe(SetupProfile p, string architecture)
     {
-        switch (p.Option("PE"))
+        switch (p.InstallationMethod)
         {
             case "Custom":
                 if (!p.ConfirmWipe)
                     throw new SetupException("Na stronie dysku potwierdź uruchomienie własnego skryptu WinPE.", "Confirm running your WinPE script on the disk page.");
                 return new ScriptPESetttings(Required(p, "PEText"));
             case "Generated":
-                if (!p.AcceptEula || p.DiskMode is not (DiskMode.Interactive or DiskMode.SystemAndWindows) ||
-                    p.KeyMode is not (KeyMode.Default or KeyMode.Skip))
-                    throw new SetupException("Dla trybu DISM zaakceptuj licencję, wybierz domyślną obsługę klucza lub pominięcie pytania i ustaw układ Duża C lub ręczne partycjonowanie.",
-                        "For DISM mode, accept the license, choose default key handling or skip the prompt, and select the large C layout or manual partitioning.");
+                if (!p.AcceptEula || p.KeyMode is not (KeyMode.Default or KeyMode.Skip))
+                    throw new SetupException("Dla trybu DISM zaakceptuj licencję i wybierz domyślną obsługę klucza albo pominięcie pytania o klucz.",
+                        "For DISM mode, accept the license and choose default key handling or skip the key prompt.");
                 if (p.ImageName.IndexOfAny(['%', '"', '&', '|', '<', '>', '^', '!', '\r', '\n']) >= 0 && p.ImageMode == ImageMode.ExactName)
                     throw new SetupException("W tym trybie użyj indeksu obrazu dla takiej nazwy.", "Use the image index in this mode for that image name.");
 
@@ -283,7 +282,7 @@ internal static class ModernOptions
                     layout = new UnattendedPartitionSettings(disk, p.DetectsDiskFirmware ? PartitionLayout.Automatic :
                         p.Firmware == Firmware.Gpt ? PartitionLayout.GPT : PartitionLayout.MBR,
                         p.Recovery ? RecoveryMode.Partition : RecoveryMode.None,
-                        p.Firmware == Firmware.Gpt ? p.EfiMiB : p.BiosMiB, p.RecoveryMiB);
+                        p.BootPartitionMiB, p.RecoveryMiB);
                 IInstallFromSettings image = p.ImageMode switch
                 {
                     ImageMode.Edition => new EditionMetadataInstallFromSettings(

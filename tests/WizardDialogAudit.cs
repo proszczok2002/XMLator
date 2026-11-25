@@ -103,9 +103,12 @@ internal static class WizardDialogAudit
             }
             if (diskSettingsOnly)
             {
+                profile.TargetName = "Windows 10";
                 foreach (var mode in new[] { DiskMode.Interactive, DiskMode.Available })
                 {
+                    profile.Firmware = mode == DiskMode.Available ? Firmware.Mbr : Firmware.Gpt;
                     profile.DiskMode = mode;
+                    profile.ImageMode = ImageMode.Index;
                     Show(3);
                     CheckFields(wizard);
                     screens++;
@@ -205,10 +208,13 @@ internal static class WizardDialogAudit
             void CheckDiskSettings(bool automaticSelected) =>
                 Open(wizard, Lang("Zaawansowane ustawienia Windows Setup…", "Advanced Windows Setup settings…"), dialog =>
                 {
-                    var automatic = Controls(dialog).OfType<CheckBox>().Single(check =>
-                        check.AccessibleName == Lang("Pozwól instalatorowi wybrać partycję na dowolnym dysku", "Let Setup choose a partition on any disk"));
-                    if (!automatic.Visible || automatic.Checked != automaticSelected)
-                        throw new InvalidOperationException("The advanced disk selection checkbox did not reflect the profile.");
+                    if (Controls(dialog).OfType<CheckBox>().Count(check => check.Visible) != 1)
+                        throw new InvalidOperationException("Advanced Setup should only have the Windows SIM checkbox.");
+                    var imagePrompt = Controls(dialog).OfType<ComboBox>().SingleOrDefault(item => item.Visible &&
+                        item.AccessibleName == Lang("Kiedy pokazać ekran wyboru obrazu lub celu instalacji?", "When should Setup show image or destination selection?"));
+                    if ((imagePrompt is not null) != (automaticSelected || profile.ImageMode != ImageMode.Interactive) ||
+                        (imagePrompt?.Items.OfType<Choice<SetupPrompt>>().Any(choice => choice.Value == SetupPrompt.Never) == true) != automaticSelected)
+                        throw new InvalidOperationException("The destination screen must remain available in manual mode.");
                 });
 
             void AddEditor(Form dialog) => Open(dialog, Lang("Dodaj…", "Add…"));

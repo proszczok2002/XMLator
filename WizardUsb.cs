@@ -56,7 +56,7 @@ internal sealed partial class Wizard
         if (allowed != "Mbr")
             modes.Add(new(Firmware.Gpt, "UEFI / GPT (FAT32)"));
         if (allowed != "Gpt")
-            modes.Add(new(Firmware.Mbr, "BIOS / Legacy / MBR (NTFS)"));
+            modes.Add(new(Firmware.Mbr, "Legacy BIOS / MBR (NTFS)"));
         if (!modes.Any(mode => mode.Value == usbFirmware))
             usbFirmware = modes[0].Value;
         if (modes.Count == 1)
@@ -465,7 +465,7 @@ internal sealed partial class Wizard
         string title = L("Potwierdzenie formatowania pendrive’a", "Confirm USB formatting");
         HideOperationProgress();
         SetHeading(title);
-        string description = $"{disk.Label(UiLanguage)}\r\n{(mode == Firmware.Gpt ? "UEFI / GPT" : "BIOS / Legacy / MBR")}\r\n{Path.GetFileName(iso)}";
+        string description = $"{disk.Label(UiLanguage)}\r\n{(mode == Firmware.Gpt ? "UEFI / GPT" : "Legacy BIOS / MBR")}\r\n{Path.GetFileName(iso)}";
         string warning = L("Sformatować wybrany pendrive i usunąć z niego wszystkie pliki?",
             "Format the selected USB drive and erase all its files?");
         UseWaitCursor = false;

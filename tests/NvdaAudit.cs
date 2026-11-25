@@ -126,36 +126,22 @@ internal static class NvdaAudit
             try
             {
                 step.SetValue(wizard, 3);
+                profile.TargetName = "Windows 10";
                 show.Invoke(wizard, [true]);
-                await Pause();
-                var settings = Find<Button>(wizard, "Zaawansowane ustawienia Windows Setup…");
-                for (int i = 0; i < 8 && !settings.Focused; i++)
-                    await Key("{TAB}");
-                if (!settings.Focused)
-                    throw new InvalidOperationException("Tab could not reach the advanced setup settings.");
-                await Key(" ");
-                var dialog = Application.OpenForms.Cast<Form>().Single(form => form.Modal);
-                var automatic = Find<CheckBox>(dialog, "Pozwól instalatorowi wybrać partycję na dowolnym dysku");
-                await ToggleTwice(automatic);
-                await Key(" ");
-                await Key("{ENTER}");
-                if (profile.DiskMode != DiskMode.Available || !settings.Focused ||
-                    FindControls(wizard).OfType<ComboBox>().Any(list => list.Visible && list.AccessibleName == "Jak wybrać dysk i partycje?") ||
-                    !Find<ListBox>(wizard, "Plan partycji w kolejności na dysku").Items.Cast<string>()
-                        .Any(line => line.Contains("przeszuka wszystkie dyski")))
-                    throw new InvalidOperationException("The advanced disk selection was not applied, or it conflicts with the main layout.");
-                await Key(" ");
-                dialog = Application.OpenForms.Cast<Form>().Single(form => form.Modal);
-                automatic = Find<CheckBox>(dialog, "Pozwól instalatorowi wybrać partycję na dowolnym dysku");
-                automatic.Select();
-                await Pause();
-                await Key(" ");
-                await Key("{ENTER}");
-                if (profile.DiskMode != DiskMode.Interactive ||
-                    Find<ComboBox>(wizard, "Jak wybrać dysk i partycje?").SelectedItem is not Choice<DiskMode> { Value: DiskMode.Interactive })
-                    throw new InvalidOperationException("Clearing the setting did not restore manual selection.");
-                Console.WriteLine("The native checkbox reported both states, applied and cleared automatic partition selection, and returned focus to its button.");
+                var boot = Find<ComboBox>(wizard, "Tryb rozruchu instalatora");
+                var partition = Find<ComboBox>(wizard, "Jak wybrać dysk i partycje?");
+                await SelectLegacyLayout(wizard, DiskMode.Available);
+                if (!Find<ListBox>(wizard, "Plan partycji w kolejności na dysku").Items.Cast<string>()
+                    .Any(line => line.Contains("przeszuka wszystkie dyski")))
+                    throw new InvalidOperationException("The disk plan does not explain the automatic all-disk selection.");
+                boot.Select();
+                await Key("{UP}");
+                if (!boot.Focused || profile.DiskMode != DiskMode.Interactive ||
+                    partition.SelectedItem is not Choice<DiskMode> { Value: DiskMode.Interactive })
+                    throw new InvalidOperationException("Selecting UEFI did not keep focus and restore manual partition selection.");
+                Console.WriteLine("The boot mode comes first. Legacy BIOS exposes automatic selection, and returning to UEFI restores manual selection.");
 
+                profile.TargetName = "Windows 11";
                 profile.ImageMode = ImageMode.Edition;
                 profile.PresetEdition = "Core";
                 step.SetValue(wizard, 8);
@@ -405,14 +391,7 @@ internal static class NvdaAudit
                 if (Find<ComboBox>(wizard, "Który Windows chcesz zainstalować?").Text != "Windows 10")
                     throw new InvalidOperationException("Could not select Windows 10.");
                 changeStep.Invoke(wizard, [3]);
-                var partition = Find<ComboBox>(wizard, "Jak wybrać dysk i partycje?");
-                partition.Select();
-                await Pause();
-                for (int selection = 0; selection < 4; selection++)
-                    await Key("{DOWN}");
-                if (!partition.Text.Contains("jedna aktywna partycja C") || FindControls(wizard).OfType<ComboBox>()
-                    .Any(combo => combo.Visible && combo.AccessibleName == "Tryb rozruchu i układ partycji"))
-                    throw new InvalidOperationException("Single C must announce its BIOS/MBR layout without another firmware choice.");
+                await SelectLegacyLayout(wizard, DiskMode.Single);
                 await Key("{TAB}");
                 if (wizard.ActiveControl is not NumericUpDown && !FindControls(wizard).OfType<NumericUpDown>().Any(field => field.ContainsFocus))
                     throw new InvalidOperationException("Tab did not reach the disk number directly.");
@@ -648,6 +627,29 @@ internal static class NvdaAudit
     {
         SendKeys.Send(key);
         await Pause();
+    }
+
+    private static async Task SelectLegacyLayout(Form wizard, DiskMode layout)
+    {
+        var boot = Find<ComboBox>(wizard, "Tryb rozruchu instalatora");
+        var partition = Find<ComboBox>(wizard, "Jak wybrać dysk i partycje?");
+        if (!boot.Focused || partition.Items.OfType<Choice<DiskMode>>().Any(choice => choice.Value == layout))
+            throw new InvalidOperationException("UEFI must start focused and hide the BIOS-only layout.");
+        await Pause();
+        await Key("{DOWN}");
+        if (!boot.Focused || boot.SelectedItem is not Choice<Firmware?> { Value: Firmware.Mbr })
+            throw new InvalidOperationException("The first field did not select Legacy BIOS.");
+        await Key("{TAB}");
+        await Key("{TAB}");
+        if (!partition.Focused)
+            throw new InvalidOperationException("Tab did not reach the partition list.");
+        int index = partition.Items.OfType<Choice<DiskMode>>().ToList().FindIndex(choice => choice.Value == layout);
+        if (index < 0)
+            throw new InvalidOperationException("The Legacy-only disk layout did not appear.");
+        for (int i = 0; i < index; i++)
+            await Key("{DOWN}");
+        if (partition.SelectedItem is not Choice<DiskMode> selected || selected.Value != layout)
+            throw new InvalidOperationException("The partition list did not select the Legacy layout.");
     }
 
     private static Task Pause() => Task.Delay(675);

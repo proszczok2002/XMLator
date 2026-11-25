@@ -431,7 +431,7 @@ internal sealed partial class Wizard
         var generated = new Fields();
         var custom = new Fields();
         var normal = new Fields();
-        string method = InstallationMethod();
+        string method = profile.InstallationMethod;
         if (profile.Target.Windows11)
         {
             Flag(normal, "BypassRequirements", "Pomiń sprawdzenie zgodności sprzętu z Windows 11", "Skip Windows 11 hardware compatibility checks");
@@ -469,8 +469,6 @@ internal sealed partial class Wizard
         UpdateDisk(profile.Option("TargetDisk", "Fixed"));
         automaticLayout.Section(diskChecks);
         automaticLayout.Section(diskScript);
-        if (profile.SupportsLayoutFirmware(Firmware.Gpt) && profile.SupportsLayoutFirmware(Firmware.Mbr))
-            Flag(automaticLayout, "DetectFirmware", "Wykryj BIOS/UEFI automatycznie", "Automatically detect BIOS/UEFI");
         var customDisk = new Fields();
         generated.Check(L("Użyj własnego skryptu DiskPart", "Use a custom DiskPart script"), profile.Has("CustomDiskPart"), value =>
         {

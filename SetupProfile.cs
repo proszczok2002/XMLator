@@ -107,12 +107,7 @@ internal sealed class SetupProfile
     public bool UseSetupKeyForActivation { get; set; } = true;
     public bool UseActivationKey { get; set; }
     [JsonIgnore] public string ActivationKey { get; set; } = "";
-    private Firmware firmware;
-    public Firmware Firmware
-    {
-        get => DiskMode == DiskMode.Single ? Firmware.Mbr : firmware;
-        set => firmware = value;
-    }
+    public Firmware Firmware { get; set; }
     public DiskMode DiskMode { get; set; }
     public int DiskNumber { get; set; }
     public int PartitionNumber { get; set; } = 1;
@@ -129,15 +124,46 @@ internal sealed class SetupProfile
     public string WindowsLabel { get; set; } = "Windows";
     public bool SeparateBiosBoot { get; set; } = true;
     public List<DataPartition> DataPartitions { get; set; } = [];
+    [JsonIgnore] internal string InstallationMethod => Target.ModernClient ? Option("PE", "Normal") : "Normal";
     [JsonIgnore] public bool WipesDisk => DiskMode is DiskMode.Single or DiskMode.SystemAndWindows or DiskMode.SystemWindowsData or DiskMode.Custom;
     [JsonIgnore] public bool FormatsPartition => DiskMode == DiskMode.FormatExisting;
     [JsonIgnore] public bool NeedsDiskNumber => WipesDisk || DiskMode is DiskMode.Existing or DiskMode.FormatExisting;
     [JsonIgnore] public bool RequiresDiskConsent => WipesDisk || FormatsPartition || RequiresCustomPeConsent;
-    [JsonIgnore] public bool RequiresCustomPeConsent => Target.ModernClient &&
-        (Option("PE") == "Custom" || Option("PE") == "Generated" && Has("CustomDiskPart"));
-    [JsonIgnore] public bool DetectsDiskFirmware => Target.ModernClient && Option("PE") == "Generated" &&
-        DiskMode == DiskMode.SystemAndWindows && !Has("CustomDiskPart") && Has("DetectFirmware") &&
+    [JsonIgnore] public bool RequiresCustomPeConsent => InstallationMethod == "Custom" ||
+        InstallationMethod == "Generated" && Has("CustomDiskPart");
+    [JsonIgnore] internal bool SupportsAutomaticFirmware => InstallationMethod == "Generated" && !Has("CustomDiskPart") &&
         SupportsLayoutFirmware(Firmware.Gpt) && SupportsLayoutFirmware(Firmware.Mbr);
+    [JsonIgnore] internal bool UsesAutomaticFirmware => SupportsAutomaticFirmware && Has("DetectFirmware");
+    [JsonIgnore] internal bool DetectsDiskFirmware => UsesAutomaticFirmware && DiskMode == DiskMode.SystemAndWindows;
+    [JsonIgnore] internal int BootPartitionMiB => Firmware == Firmware.Gpt ? EfiMiB : BiosMiB;
+    [JsonIgnore] internal SetupPrompt EffectiveImagePrompt => DiskMode == DiskMode.Interactive && ImagePrompt == SetupPrompt.Never
+        ? SetupPrompt.OnError : ImagePrompt;
+
+    internal bool SupportsDiskMode(DiskMode mode) => mode == DiskMode.Interactive ||
+        SupportsLayoutFirmware(Firmware) && (InstallationMethod switch
+        {
+            "Normal" => mode is not (DiskMode.Available or DiskMode.Single) || Firmware == Firmware.Mbr,
+            "Generated" => mode == DiskMode.SystemAndWindows && !Has("CustomDiskPart"),
+            _ => false
+        });
+
+    internal bool UpdateDiskOptions()
+    {
+        if (!SupportsLayoutFirmware(Firmware))
+        {
+            Firmware alternate = Firmware == Firmware.Gpt ? Firmware.Mbr : Firmware.Gpt;
+            if (SupportsLayoutFirmware(alternate))
+                Firmware = alternate;
+            if (DiskMode == DiskMode.Interactive)
+                return false;
+        }
+        else if (SupportsDiskMode(DiskMode))
+            return false;
+
+        DiskMode = DiskMode.Interactive;
+        ConfirmWipe = false;
+        return true;
+    }
 
     internal bool SupportsLayoutFirmware(Firmware mode) => ExtraArchitectures.Prepend(Architecture).All(
         architecture => SupportsFirmware(mode, architecture));

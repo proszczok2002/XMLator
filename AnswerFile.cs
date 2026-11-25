@@ -155,6 +155,9 @@ internal sealed class AnswerFile
             throw new SetupException("Wpisz klucz produktu w formacie XXXXX-XXXXX-XXXXX-XXXXX-XXXXX.", "Enter a product key in the format XXXXX-XXXXX-XXXXX-XXXXX-XXXXX.");
         if (p.KeyMode is KeyMode.Ask or KeyMode.Firmware or KeyMode.Generic && !p.Target.ModernClient)
             throw new SetupException("Ten tryb klucza jest dostępny dla Windows 10 i 11.", "This product key mode is available for Windows 10 and 11.");
+        if (!p.SupportsDiskMode(p.DiskMode))
+            throw new SetupException("W kroku Dysk i partycje wybierz układ dostępny dla wybranego trybu rozruchu i metody instalacji.",
+                "On the Disk and partitions page, choose a layout supported by the boot mode and installation method.");
         if (p.RequiresDiskConsent && !p.ConfirmWipe)
             throw new SetupException("Zaznacz zgodę na wybraną operację w kroku Dysk i partycje albo w podsumowaniu.", "Confirm the selected operation on the Disk and partitions page or on the review page.");
         if (p.NeedsDiskNumber && p.DiskNumber < 0 || (p.DiskMode is DiskMode.Existing or DiskMode.FormatExisting) && p.PartitionNumber < 1)
@@ -337,7 +340,7 @@ internal sealed class AnswerFile
 
         if (osImage.HasElements)
         {
-            osImage.Add(E("WillShowUI", p.ImagePrompt.ToString()));
+            osImage.Add(E("WillShowUI", p.EffectiveImagePrompt.ToString()));
             setup.Add(E("ImageInstall", osImage));
         }
     }
@@ -527,7 +530,7 @@ internal static class Layout
     // Unattend's Extend consumes all remaining space. WinPE reserves the recovery space after C before Setup starts applying the image.
     internal static bool PrepareRecoveryInWinPe(SetupProfile p) =>
         p.Firmware == Firmware.Gpt && p.Recovery && !p.Target.OldMsr &&
-        (!p.Target.ModernClient || p.Option("PE", "Normal") == "Normal") &&
+        p.InstallationMethod == "Normal" &&
         (p.DiskMode == DiskMode.SystemAndWindows || p.DiskMode == DiskMode.Custom && p.CustomWindowsMiB == 0 && p.DataPartitions.Count == 0);
 
     public static List<Partition> Plan(SetupProfile p, string? architecture = null)
@@ -539,16 +542,20 @@ internal static class Layout
             throw new SetupException("Wybrany Windows i architektura wymagają tu BIOS/MBR. W Viście UEFI jest dostępne dla x64 z SP1 lub SP2.",
                 "The selected Windows version and architecture require BIOS/MBR here. Vista supports UEFI with x64 SP1 or SP2.");
         if (p.DiskMode == DiskMode.Single)
+        {
+            if (p.Firmware != Firmware.Mbr)
+                throw new SetupException("Jedna aktywna partycja C wymaga trybu Legacy BIOS/MBR.", "A single active C partition requires Legacy BIOS/MBR.");
             return [new("Primary", 0, "NTFS", "Windows", Windows: true, Active: true)];
+        }
 
         var result = new List<Partition>();
         bool custom = p.DiskMode == DiskMode.Custom;
         bool separateMbr = !custom || p.SeparateBiosBoot;
+        int minimumEfi = p.Target.OldMsr ? 100 : 200;
+        if ((p.Firmware == Firmware.Gpt || p.DetectsDiskFirmware) && p.BootPartitionMiB < minimumEfi)
+            throw SetupException.Format($"Partycja EFI musi mieć co najmniej {minimumEfi} MiB. Dla dysków 4Kn użyj co najmniej 300 MiB.", $"The EFI partition must be at least {minimumEfi} MiB. For 4Kn drives, use at least 300 MiB.");
         if (p.Firmware == Firmware.Gpt)
         {
-            int minimum = p.Target.OldMsr ? 100 : 200;
-            if (p.EfiMiB < minimum)
-                throw SetupException.Format($"Partycja EFI musi mieć co najmniej {minimum} MiB. Dla dysków 4Kn użyj co najmniej 300 MiB.", $"The EFI partition must be at least {minimum} MiB. For 4Kn drives, use at least 300 MiB.");
             result.Add(new("EFI", p.EfiMiB, "FAT32", "System"));
             result.Add(new("MSR", p.Target.OldMsr ? 128 : 16));
         }

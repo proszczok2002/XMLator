@@ -583,7 +583,8 @@ class DiskModifier(ModifierContext context) : Modifier(context)
       }
 
       writer.WriteLine("""
-        wpeutil.exe UpdateBootInfo
+        set "LAYOUT="
+        wpeutil.exe UpdateBootInfo || call :fail "Unable to read the boot mode from Windows PE."
         for /f "tokens=3" %%t in ('reg.exe query HKLM\System\CurrentControlSet\Control /v PEFirmwareType') do (
             if %%t == 0x1 (
                 set "LAYOUT=MBR"
@@ -595,6 +596,7 @@ class DiskModifier(ModifierContext context) : Modifier(context)
                 call :fail "Unexpected PEFirmwareType value %%t."
             )
         )
+        if not defined LAYOUT call :fail "Windows PE did not report a boot mode."
         call :print "The computer is booted in %FIRMWARE% mode, hence the target disk must be configured with the %LAYOUT% partition layout"
         """);
 
@@ -619,6 +621,9 @@ class DiskModifier(ModifierContext context) : Modifier(context)
           }
           else
           {
+            writer.WriteLine($"""
+              if /i not "%LAYOUT%"=="{settings.PartitionLayout}" call :fail "Restart the installation media in the boot mode required by the {settings.PartitionLayout} layout."
+              """);
             IncludeDiskpartScript(new EmbeddedScript(Paths.DiskpartScript, GetDiskpartScript(settings), Escape: false));
             Execute(Paths.DiskpartScript, message);
           }

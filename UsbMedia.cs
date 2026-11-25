@@ -15,13 +15,11 @@ internal static class UsbMedia
 {
     internal static string RequiredFirmware(SetupProfile profile)
     {
-        if (profile.Architecture is "arm64" or "ia64")
-            return "Gpt";
-        if (!profile.Target.CanUseGpt(profile.Architecture))
-            return "Mbr";
-        if (profile.WipesDisk && !profile.DetectsDiskFirmware)
+        if (profile.UsesAutomaticFirmware)
+            return "Any";
+        if (profile.SupportsFirmware(profile.Firmware, profile.Architecture))
             return profile.Firmware.ToString();
-        return profile.Target.Windows11 && !profile.Has("BypassRequirements") ? "Gpt" : "Any";
+        return profile.Firmware == Firmware.Gpt ? "Mbr" : "Gpt";
     }
 
     internal static async Task<UsbDisk[]> ListDisks(string language)
