@@ -69,7 +69,7 @@ internal static partial class SelectionAudit
                         if (theme != AppTheme.System && !SystemInformation.HighContrast)
                         {
                             Color background = ReadDialogBackground(contactHandle);
-                            if (theme == AppTheme.Dark ? (background.ToArgb() & 0xFFFFFF) != 0x1C1D20 : background.GetBrightness() < 0.65)
+                            if (theme == AppTheme.Dark ? background.ToArgb() != Wizard.DarkSurface.ToArgb() : background.GetBrightness() < 0.65)
                                 throw new InvalidOperationException($"Wrong support dialog background for {theme}: {background}.");
                         }
                         string[] labels = [Local("Wesprzyj przez PayPal", "Support via &PayPal"),

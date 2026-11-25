@@ -5,8 +5,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.0.2</Version>
-    <InformationalVersion>1.02</InformationalVersion>
+    <Version>1.0.3</Version>
+    <InformationalVersion>1.03</InformationalVersion>
     <ApplicationIcon>assets\XMLator.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AllowedReferenceRelatedFileExtensions>.pdb</AllowedReferenceRelatedFileExtensions>

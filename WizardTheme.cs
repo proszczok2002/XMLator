@@ -5,13 +5,14 @@ namespace XMLator;
 
 internal sealed partial class Wizard
 {
-    private static readonly Color DarkSurface = Color.FromArgb(28, 29, 32);
-    private static readonly Color DarkInput = Color.FromArgb(44, 46, 51);
-    private static readonly Color DarkText = Color.FromArgb(244, 245, 247);
-    private static readonly Color DarkBorder = Color.FromArgb(108, 112, 122);
-    private static readonly Color DarkHighlight = Color.FromArgb(61, 79, 107);
+    internal static Color DarkSurface { get; } = Color.FromArgb(26, 39, 56);
+    private static readonly Color DarkInput = Color.FromArgb(12, 20, 31);
+    private static readonly Color DarkText = Color.FromArgb(244, 248, 252);
+    private static readonly Color DarkBorder = Color.FromArgb(126, 146, 169);
+    private static readonly Color DarkHighlight = Color.FromArgb(50, 75, 102);
     private readonly ToolStripRenderer darkMenu = new ToolStripProfessionalRenderer(new DarkMenuColors());
     private readonly ToolStripRenderer systemMenu = new ToolStripSystemRenderer();
+    private bool? appliedDarkTheme;
 
     private void ChangeTheme(AppTheme theme) => ChangeInterfacePreferences(preferences.Language, theme);
 
@@ -29,20 +30,30 @@ internal sealed partial class Wizard
 
     private void ApplyTheme(Form? dialog = null)
     {
-        var form = dialog ?? this;
         bool dark = UseDarkTheme();
-        ApplyColors(form, dark);
-        if (dialog is null)
+        if (dialog is not null)
         {
-            optionHelp.OwnerDraw = dark;
-            menu.Renderer = dark ? darkMenu : systemMenu;
-            foreach (ToolStripItem item in menu.Items)
-                ColorMenuItem(item, dark);
+            dialog.HandleCreated += (_, _) => SetTitleBar(dialog, UseDarkTheme());
+            dialog.SystemColorsChanged += (_, _) =>
+            {
+                bool current = UseDarkTheme();
+                ApplyColors(dialog, current, refreshNativeTheme: current != dark);
+                SetTitleBar(dialog, current);
+                dark = current;
+            };
+            ApplyColors(dialog, dark);
+            return;
         }
-        if (form.IsHandleCreated)
-            SetTitleBar(form, dark);
-        else if (dialog is not null)
-            dialog.HandleCreated += (_, _) => SetTitleBar(dialog, dark);
+
+        bool refreshNativeTheme = appliedDarkTheme is bool previous && previous != dark;
+        appliedDarkTheme = dark;
+        ApplyColors(this, dark, refreshNativeTheme);
+        optionHelp.OwnerDraw = dark;
+        menu.Renderer = dark ? darkMenu : systemMenu;
+        foreach (ToolStripItem item in menu.Items)
+            ColorMenuItem(item, dark);
+        if (IsHandleCreated)
+            SetTitleBar(this, dark);
     }
 
     protected override void OnHandleCreated(EventArgs e)
@@ -54,26 +65,60 @@ internal sealed partial class Wizard
     protected override void OnSystemColorsChanged(EventArgs e)
     {
         base.OnSystemColorsChanged(e);
-        if (IsHandleCreated)
+        if (IsHandleCreated && !IsDisposed)
+        {
+            SetNativeTheme();
             ApplyTheme();
+        }
     }
 
-    private static void ApplyColors(Control control, bool dark)
+    protected override void WndProc(ref Message message)
+    {
+        const int settingChange = 0x001A;
+        bool immersiveColorsChanged = message.Msg == settingChange && message.LParam != IntPtr.Zero &&
+            Marshal.PtrToStringUni(message.LParam) == "ImmersiveColorSet";
+        base.WndProc(ref message);
+        if (immersiveColorsChanged && preferences.Theme == AppTheme.System)
+            OnSystemColorsChanged(EventArgs.Empty);
+    }
+
+    private static void ApplyColors(Control control, bool dark, bool refreshNativeTheme = false)
     {
         bool input = control is TextBoxBase or ComboBox or ListBox or UpDownBase;
-        control.BackColor = dark ? input || control is Button ? DarkInput : DarkSurface :
-            input ? SystemColors.Window : SystemColors.Control;
-        control.ForeColor = dark ? DarkText : input ? SystemColors.WindowText : SystemColors.ControlText;
-        if (control is Button button)
+        if (control is ButtonBase and not CheckBox || control is ProgressBar)
         {
-            button.FlatStyle = dark ? FlatStyle.Flat : FlatStyle.Standard;
-            button.UseVisualStyleBackColor = !dark;
-            button.FlatAppearance.BorderColor = DarkBorder;
-            button.FlatAppearance.MouseOverBackColor = DarkHighlight;
-            button.FlatAppearance.MouseDownBackColor = DarkHighlight;
+            // Keep the native control's rendering for focus, default, pressed and disabled states.
+            control.BackColor = SystemColors.Control;
+            control.ForeColor = SystemColors.ControlText;
+            if (control is ButtonBase button)
+                button.UseVisualStyleBackColor = true;
         }
+        else
+        {
+            control.BackColor = dark ? input ? DarkInput : DarkSurface :
+                input ? SystemColors.Window : SystemColors.Control;
+            control.ForeColor = dark ? DarkText : input ? SystemColors.WindowText : SystemColors.ControlText;
+        }
+        if (refreshNativeTheme && OperatingSystem.IsWindowsVersionAtLeast(10, 0, 22000) && control.IsHandleCreated)
+            RefreshNativeTheme(control, dark);
+        control.Invalidate();
         foreach (Control child in control.Controls)
-            ApplyColors(child, dark);
+            ApplyColors(child, dark, refreshNativeTheme);
+    }
+
+    private static void RefreshNativeTheme(Control control, bool dark)
+    {
+        // WinForms applies these themes when creating HWNDs. Refresh existing HWNDs in place.
+        string? explorer = dark ? "DarkMode_Explorer" : null;
+        if (control is ComboBox combo)
+        {
+            _ = SetWindowTheme(combo.Handle, dark ? "DarkMode_CFD" : null, null);
+            var info = new ComboBoxInfo { Size = Marshal.SizeOf<ComboBoxInfo>() };
+            if (GetComboBoxInfo(combo.Handle, ref info))
+                _ = SetWindowTheme(info.ListHandle, explorer, null);
+        }
+        else if (control is ButtonBase or TextBoxBase or ListBox or UpDownBase or ProgressBar or ScrollableControl { AutoScroll: true })
+            _ = SetWindowTheme(control.Handle, explorer, null);
     }
 
     private static void ColorMenuItem(ToolStripItem item, bool dark)
@@ -96,6 +141,25 @@ internal sealed partial class Wizard
 
     [DllImport("dwmapi.dll")]
     private static extern int DwmSetWindowAttribute(IntPtr window, int attribute, ref int value, int bytes);
+
+    [DllImport("uxtheme.dll", ExactSpelling = true, CharSet = CharSet.Unicode)]
+    private static extern int SetWindowTheme(IntPtr window, string? application, string? identifiers);
+
+    [DllImport("user32.dll", ExactSpelling = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetComboBoxInfo(IntPtr window, ref ComboBoxInfo info);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ComboBoxInfo
+    {
+        internal int Size;
+        internal Rectangle ItemRectangle;
+        internal Rectangle ButtonRectangle;
+        internal int ButtonState;
+        internal IntPtr ComboHandle;
+        internal IntPtr EditHandle;
+        internal IntPtr ListHandle;
+    }
 
     private void DrawOptionHelp(object? sender, DrawToolTipEventArgs e)
     {

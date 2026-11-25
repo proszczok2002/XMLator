@@ -132,7 +132,7 @@ internal static class WizardDialogAudit
             Open(wizard, polish ? "Ustawienia…" : UiText.Get(language.Value, "&Settings…").Replace("&", ""), dialog =>
             {
                 var lists = Controls(dialog).OfType<ComboBox>().ToArray();
-                if (dialog.Text != (polish ? "Ustawienia" : UiText.Get(language.Value, "Settings")) || lists.Length != 2 ||
+                if (dialog.Text != (polish ? "Ustawienia" : UiText.Get(language.Value, "Settings")) || lists.Length != 3 ||
                     !lists[0].Focused || lists[0].SelectedItem is not Choice<string> item || item.Value != language.Value ||
                     lists[0].Items.Count != 9 || lists[1].Items.Count != 3 || lists.Any(list => !list.Visible ||
                         list.DropDownStyle != ComboBoxStyle.DropDownList || !dialog.ClientRectangle.Contains(

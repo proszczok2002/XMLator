@@ -179,6 +179,11 @@ internal static class Checks
             Task.Run(() => SelectionAudit.ReleaseSettings(settingsExe, languages, settingsWork)).GetAwaiter().GetResult();
             return;
         }
+        if (args is ["--dark-theme-ui", var themeExe, var themeWork])
+        {
+            Task.Run(() => SelectionAudit.DarkTheme(themeExe, themeWork)).GetAwaiter().GetResult();
+            return;
+        }
         if (args is ["--updater-public-ui", var updateExe, var referenceExe, var updateWork])
         {
             Task.Run(() => SelectionAudit.PublicUpdate(updateExe, referenceExe, updateWork)).GetAwaiter().GetResult();

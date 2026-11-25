@@ -52,6 +52,7 @@ internal sealed partial class Wizard : Form
         bool scheduleAutomaticUpdate = true)
     {
         this.preferences = preferences ?? new InterfacePreferences();
+        SetNativeTheme();
         this.updates = updates;
         profile = new SetupProfile();
         Text = ProductCaption;
@@ -176,16 +177,14 @@ internal sealed partial class Wizard : Form
             Validate();
         preferences.Language = language;
         preferences.Theme = theme;
+        SetNativeTheme();
         if (languageChanged)
         {
             SetupMenu();
             ShowStep(focusStep);
         }
         else
-        {
-            SetNativeTheme();
             ApplyTheme();
-        }
         SaveInterfacePreferences();
     }
 
@@ -226,7 +225,6 @@ internal sealed partial class Wizard : Form
     private void ShowStep(bool focus = true)
     {
         bool wasSaved = savedConfiguration is not null && !HasUnsavedConfiguration();
-        SetNativeTheme();
         SuspendLayout();
         try
         {
