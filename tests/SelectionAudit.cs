@@ -755,7 +755,19 @@ internal static partial class SelectionAudit
         bool polish = source.Current.Name == "Źródło obrazu ISO";
         var edition = Find(window, ControlType.ComboBox, "Wydanie ISO (Home / Pro / Education)", "ISO release (Home / Pro / Education)");
         if (ReadValue(edition) != isoRelease)
-            ChooseNext(edition, isoRelease);
+        {
+            const uint findExactComboItem = 0x0158;
+            int index = -1;
+            if (!SpinWait.SpinUntil(() => SendText(new IntPtr(edition.Current.NativeWindowHandle), findExactComboItem,
+                    new IntPtr(-1), isoRelease, 2, 1000, out var match) != IntPtr.Zero && (index = match.ToInt32()) >= 0, 30000))
+                throw new InvalidOperationException($"The Microsoft catalog did not confirm {isoRelease}.");
+            FocusWhenReady(edition);
+            PostKey(edition, Keys.Home);
+            for (int i = 0; i < index; i++)
+                PostKey(edition, Keys.Down);
+            if (!SpinWait.SpinUntil(() => ReadValue(edition) == isoRelease, 3500))
+                throw new InvalidOperationException($"The keyboard could not select {isoRelease}.");
+        }
         var language = Find(window, ControlType.ComboBox, "Język obrazu ISO", "ISO language");
         if (ReadValue(language) != "Polski (Polska)")
             throw new InvalidOperationException("The ISO dialog did not select Polish.");

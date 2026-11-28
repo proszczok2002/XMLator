@@ -46,12 +46,24 @@ internal static partial class SelectionAudit
                     string no = Local("Nie. Skonfiguruj konto w instalatorze.", "No. Set up the account in Setup.");
                     if (ReadValue(mode) != yes)
                         throw new InvalidOperationException("The test profile did not select local account setup.");
-                    PressNative(Named(window, ControlType.Button, nextLabel));
+                    var next = Named(window, ControlType.Button, nextLabel);
+                    if (languages != "all")
+                    {
+                        FocusWhenReady(next);
+                        Thread.Sleep(500);
+                        PostKey(next, Keys.Space);
+                    }
+                    else
+                        PressNative(next);
                     var dialog = WaitForOwnedDialog(window, "XMLator");
                     Named(dialog, ControlType.Text, Local("Dodaj co najmniej jedno konto lokalne.", "Add at least one local account."));
+                    if (languages != "all")
+                        Thread.Sleep(1000);
                     PressNative(Named(dialog, ControlType.Button, "OK"));
                     if (!SpinWait.SpinUntil(() => window.Current.Name == accountStep && add.Current.HasKeyboardFocus, 3500))
                         throw new InvalidOperationException("The wizard did not return focus to Add account.");
+                    if (languages != "all")
+                        Thread.Sleep(700);
 
                     VerifyChange(mode, yes, no, Keys.Up);
                     PressNative(Named(window, ControlType.Button, nextLabel));
