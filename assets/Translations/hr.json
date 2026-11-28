@@ -1,4 +1,7 @@
 {
+  "User manual": "Priručnik za korisnike",
+  "Add at least one account with administrator permissions. To configure the account during Windows installation, choose No.": "Dodajte barem jedan račun s administratorskim ovlastima. Ako želite postaviti račun tijekom instalacije sustava Windows, odaberite Ne.",
+  "Configure the account during Windows installation.": "Postavite račun tijekom instalacije sustava Windows.",
   "Legacy BIOS / MBR (Windows 11 requirements not met)": "Legacy BIOS / MBR (ne ispunjava preduvjete za Windows 11)",
   "Manually in DiskPart": "Ručno u DiskPartu",
   "The disk number must be between 0 and 999.": "Broj diska mora biti između 0 i 999.",

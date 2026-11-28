@@ -1,4 +1,7 @@
 {
+  "User manual": "用户手册",
+  "Add at least one account with administrator permissions. To configure the account during Windows installation, choose No.": "至少添加一个具有管理员权限的帐户。如果要在安装 Windows 时设置帐户，请选择“否”。",
+  "Configure the account during Windows installation.": "在安装 Windows 时设置帐户。",
   "Legacy BIOS / MBR (Windows 11 requirements not met)": "Legacy BIOS / MBR（不满足 Windows 11 系统要求）",
   "Manually in DiskPart": "在 DiskPart 中手动分区",
   "The disk number must be between 0 and 999.": "磁盘编号必须介于 0 和 999 之间。",
@@ -308,7 +311,7 @@
   "Ask on first startup": "首次启动时询问",
   "Assamese - INSCRIPT": "阿萨姆语 - INSCRIPT",
   "Assign automatically in Windows": "在 Windows 中自动分配",
-  "At least one account you add needs administrator permissions.": "至少一个您添加的账户需要管理员权限。",
+  "At least one account you add needs administrator permissions.": "请为至少一个已添加的帐户授予管理员权限。",
   "Audit process creation": "审计进程创建",
   "Automatic sign-in requires a local administrator account.": "自动登录需要一个本地管理员账户。",
   "Automatically accept the license": "自动接受许可",

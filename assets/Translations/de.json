@@ -1,4 +1,7 @@
 {
+  "User manual": "Benutzerhandbuch",
+  "Add at least one account with administrator permissions. To configure the account during Windows installation, choose No.": "Fügen Sie mindestens ein Konto mit Administratorrechten hinzu. Wählen Sie „Nein“, wenn Sie das Konto bei der Windows-Installation einrichten möchten.",
+  "Configure the account during Windows installation.": "Konto bei der Windows-Installation einrichten.",
   "Legacy BIOS / MBR (Windows 11 requirements not met)": "Legacy BIOS / MBR (Windows-11-Anforderungen nicht erfüllt)",
   "Manually in DiskPart": "Manuell in DiskPart",
   "The disk number must be between 0 and 999.": "Die Datenträgernummer muss zwischen 0 und 999 liegen.",
@@ -308,7 +311,7 @@
   "Ask on first startup": "Beim ersten Start abfragen",
   "Assamese - INSCRIPT": "Assamesisch - INSCRIPT",
   "Assign automatically in Windows": "Zuweisung automatisch in Windows",
-  "At least one account you add needs administrator permissions.": "Mindestens eines hinzugefügten Kontos benötigt Administratorrechte.",
+  "At least one account you add needs administrator permissions.": "Mindestens eines der hinzugefügten Konten benötigt Administratorrechte.",
   "Audit process creation": "Prozesserstellung protokollieren",
   "Automatic sign-in requires a local administrator account.": "Die automatische Anmeldung erfordert ein lokales Administratorkonto.",
   "Automatically accept the license": "Lizenz automatisch akzeptieren",

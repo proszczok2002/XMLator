@@ -1,4 +1,7 @@
 {
+  "User manual": "Руководство пользователя",
+  "Add at least one account with administrator permissions. To configure the account during Windows installation, choose No.": "Добавьте хотя бы одну учётную запись с правами администратора. Если вы хотите настроить учётную запись во время установки Windows, выберите «Нет».",
+  "Configure the account during Windows installation.": "Настройка учётной записи во время установки Windows.",
   "Legacy BIOS / MBR (Windows 11 requirements not met)": "Legacy BIOS / MBR (не соответствует требованиям Windows 11)",
   "Manually in DiskPart": "Вручную в DiskPart",
   "The disk number must be between 0 and 999.": "Номер диска должен быть от 0 до 999.",

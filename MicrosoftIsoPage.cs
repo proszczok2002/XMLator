@@ -127,24 +127,29 @@ internal static class MicrosoftIsoPage
                 "arm64" => "/_(?:arm64|a64)(?=[_.v])/i",
                 _ => "/_x64(?=[_.v])/i"
             };
-            string bits = architecture switch { "x86" => "32-bit", "arm64" => "Arm64", _ => "64-bit" };
+            string[] bitLabels = architecture switch
+            {
+                "x86" => ["32-bit"],
+                "arm64" => ["Arm64", "64-bit"],
+                _ => ["64-bit"]
+            };
+            // The form identifies the release. Its download filename may only give the build number.
             var download = await Poll<PageDownload?>(view, $$"""
                 (() => {
                     const pattern = {{architecturePattern}};
                     const link = Array.from(document.links).find(link => {
                         const path = new URL(link.href).pathname;
-                        return path.toLowerCase().endsWith(".iso") && pattern.test(path) &&
-                            new RegExp("(?:^|[^a-z0-9])" + {{JsonSerializer.Serialize(release)}} + "(?:[^a-z0-9]|$)", "i").test(path);
+                        return path.toLowerCase().endsWith(".iso") && pattern.test(path);
                     });
                     if (!link)
                         return document.body?.innerText.includes("715-123130") ? { Rejected: true } : null;
                     const selected = document.getElementById("product-languages")?.value;
                     const language = (selected?.startsWith("{") ? JSON.parse(selected).language : {{selectedLanguage}})
                         .replace(/^Chinese \((.+)\)$/, "Chinese $1");
-                    const label = (language + " " + {{JsonSerializer.Serialize(bits)}}).toLowerCase();
+                    const labels = {{JsonSerializer.Serialize(bitLabels)}}.map(bits => (language + " " + bits).toLowerCase());
                     const row = Array.from(document.querySelectorAll("tr")).find(row =>
                         row.cells.length === 2 &&
-                        row.cells[0].textContent.trim().replace(/\s+/g, " ").toLowerCase() === label);
+                        labels.includes(row.cells[0].textContent.trim().replace(/\s+/g, " ").toLowerCase()));
                     const hash = row?.cells[1].textContent.trim();
                     return { Address: link.href, Sha256: /^[0-9a-f]{64}$/i.test(hash) ? hash : null };
                 })()

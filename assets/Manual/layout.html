@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="@@LANG@@">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>@@TITLE@@ — XMLator</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --background: #eff3f8;
+    --surface: #fff;
+    --text: #132139;
+    --muted: #43516a;
+    --border: #bdc9da;
+    --link: #124b99;
+    --focus: #0059c4;
+    --highlight: #e1edfe;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --background: #101828;
+      --surface: #172338;
+      --text: #f0f4fb;
+      --muted: #c6d4e9;
+      --border: #5f7594;
+      --link: #a1caff;
+      --focus: #9cccff;
+      --highlight: #263f65;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--text);
+    font: 1rem/1.62 system-ui, "Segoe UI", sans-serif;
+  }
+  a { color: var(--link); text-underline-offset: .16em; }
+  :focus-visible, main:focus, h2:focus { outline: 3px solid var(--focus); outline-offset: 3px; }
+  .wrap { width: min(100% - 2rem, 74rem); margin-inline: auto; }
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 2.3rem 0 1.6rem; }
+  .version { color: var(--muted); margin: 0; font-weight: 600; }
+  h1 { font-size: clamp(1.75rem, 4vw, 2.8rem); line-height: 1.17; margin: .3rem 0 .7rem; }
+  header p { max-width: 70ch; }
+  .skip {
+    position: absolute;
+    inset: .65rem auto auto 1rem;
+    padding: .5rem .75rem;
+    transform: translateY(calc(-100% - 1rem));
+    background: var(--surface);
+  }
+  .skip:focus { transform: none; z-index: 2; }
+  .search { border-top: 1px solid var(--border); padding-top: .8rem; max-width: 46rem; }
+  label { display: block; font-weight: 650; }
+  .search-controls { display: flex; align-items: stretch; flex-wrap: wrap; gap: .5rem; }
+  input, button {
+    font: inherit; padding: .43rem .65rem; color: var(--text);
+    border: 1px solid var(--border); border-radius: .35rem; background: var(--surface);
+  }
+  input { flex: 1 1 15rem; min-width: 0; }
+  button { cursor: pointer; background: var(--highlight); }
+  [role="status"] { margin: .45rem 0 0; min-height: 1.6em; color: var(--muted); }
+  .guide { display: grid; grid-template-columns: minmax(12rem, 17rem) minmax(0, 1fr); gap: 1.1rem; padding-block: 1.2rem; }
+  nav, section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: .7rem;
+    padding: clamp(.8rem, 2vw, 1.5rem);
+  }
+  nav { align-self: start; }
+  nav ol { padding-inline-start: 1.35rem; margin-block: .5rem 0; }
+  nav li { margin: .25rem 0; }
+  main { min-width: 0; }
+  section + section { margin-top: 1rem; }
+  section > * { max-width: 78ch; }
+  h2 { line-height: 1.25; margin-top: 0; font-size: clamp(1.25rem, 2vw, 1.65rem); scroll-margin-top: .8rem; }
+  li + li { margin-top: .35rem; }
+  p { margin: .55rem 0 1rem; }
+  p:last-child { margin-bottom: 0; }
+  code, kbd { font-family: ui-monospace, Consolas, monospace; overflow-wrap: anywhere; }
+  kbd { padding: .04em .24em; border: 1px solid var(--border); border-radius: .22em; }
+  details { margin-top: .65rem; padding: .45rem .7rem; border: 1px solid var(--border); border-radius: .35rem; }
+  summary { cursor: pointer; font-weight: 650; }
+  details[open] summary { margin-bottom: .35rem; }
+  footer { padding: .5rem 0 2rem; }
+  @media (max-width: 50rem) {
+    .wrap { width: min(100% - 1.25rem, 44rem); }
+    .guide { grid-template-columns: minmax(0, 1fr); gap: .8rem; }
+  }
+</style>
+</head>
+<body>
+@@BODY@@
+<script>
+  const form = document.querySelector(".search");
+  const input = document.getElementById("manual-search");
+  const status = document.getElementById("manual-results");
+  const chapters = Array.from(document.querySelectorAll("main section[aria-labelledby]"));
+  const navItems = new Map(Array.from(document.querySelectorAll("nav li a"), link =>
+    [link.getAttribute("href").slice(1), link.closest("li")]));
+  const fold = text => text.normalize("NFKD").replace(/\p{Mark}/gu, "")
+    .toLocaleLowerCase(document.documentElement.lang).replaceAll("ł", "l").replaceAll("ß", "ss");
+  const index = chapters.map(section => ({
+    section,
+    nav: navItems.get(section.getAttribute("aria-labelledby")),
+    text: fold(section.textContent)
+  }));
+
+  function filter() {
+    const terms = fold(input.value).trim().split(/\s+/).filter(Boolean);
+    let count = 0;
+    for (const entry of index) {
+      const visible = terms.every(term => entry.text.includes(term));
+      entry.section.hidden = !visible;
+      entry.nav.hidden = !visible;
+      if (visible) count++;
+    }
+    status.textContent = terms.length === 0 ? "" : count === 0 ? status.dataset.empty :
+      status.dataset.count.replace("{count}", count).replace("{total}", chapters.length);
+  }
+
+  form.hidden = false;
+  input.addEventListener("input", filter);
+  form.addEventListener("submit", event => event.preventDefault());
+  form.addEventListener("reset", event => {
+    event.preventDefault();
+    input.value = "";
+    filter();
+    input.focus();
+  });
+</script>
+</body>
+</html>

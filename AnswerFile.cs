@@ -197,10 +197,7 @@ internal sealed class AnswerFile
                 "Add a local administrator account to use the selected initial setup option.");
         if (p.CreateUsers)
         {
-            if (p.Users.Count == 0)
-                throw new SetupException("Dodaj co najmniej jedno konto lokalne.", "Add at least one local account.");
-            if (p.FirstLocalAdministrator is null)
-                throw new SetupException("Co najmniej jedno dodane konto musi mieć uprawnienia administratora.", "At least one account you add needs administrator permissions.");
+            ValidateAccountSelection(p);
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var user in p.Users)
             {
@@ -211,6 +208,16 @@ internal sealed class AnswerFile
         }
         if (p.Logon == LogonMode.FirstAdministrator && p.FirstLocalAdministrator is null)
             throw new SetupException("Automatyczne logowanie wymaga lokalnego konta administratora.", "Automatic sign-in requires a local administrator account.");
+    }
+
+    internal static void ValidateAccountSelection(SetupProfile profile)
+    {
+        if (!profile.CreateUsers)
+            return;
+        if (profile.Users.Count == 0)
+            throw new SetupException("Dodaj co najmniej jedno konto lokalne.", "Add at least one local account.");
+        if (profile.FirstLocalAdministrator is null)
+            throw new SetupException("Co najmniej jedno dodane konto musi mieć uprawnienia administratora.", "At least one account you add needs administrator permissions.");
     }
 
     internal static void ValidateUser(LocalUser user, bool template, bool requirePassword = false)

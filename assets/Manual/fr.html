@@ -1,0 +1,107 @@
+<a class="skip" href="#main">Aller au contenu du guide</a>
+<header id="top" tabindex="-1">
+  <div class="wrap">
+    <p class="version">@@PRODUCT@@</p>
+    <h1>@@TITLE@@</h1>
+    <p>Préparez un fichier de réponses Windows, vérifiez les réglages et créez une clé d’installation. Les chapitres expliquent les choix de l’assistant et les questions que Windows peut poser ensuite.</p>
+    <form class="search" role="search" hidden>
+      <label for="manual-search">Rechercher dans le guide</label>
+      <div class="search-controls">
+        <input type="search" id="manual-search" aria-controls="main">
+        <button type="reset">Effacer la recherche</button>
+      </div>
+      <p id="manual-results" role="status" data-count="Chapitres correspondants — {count} sur {total}" data-empty="Aucun chapitre correspondant. Modifiez ou effacez la recherche."></p>
+    </form>
+  </div>
+</header>
+<div class="wrap guide">
+  <nav aria-labelledby="contents-heading">
+    <h2 id="contents-heading">Sommaire</h2>
+    <ol>
+      <li><a href="#start">Créer un premier fichier de réponses</a></li>
+      <li><a href="#keyboard">Clavier et lecteur d’écran</a></li>
+      <li><a href="#windows">Windows, licence, édition et clé de produit</a></li>
+      <li><a href="#disk">Mode de démarrage, disque et partitions</a></li>
+      <li><a href="#region">Langue, région et nom de l’ordinateur</a></li>
+      <li><a href="#accounts">Comptes locaux et première ouverture de session</a></li>
+      <li><a href="#advanced">Paramètres avancés</a></li>
+      <li><a href="#oem">Pilotes, fichiers et scripts OEM</a></li>
+      <li><a href="#export">Récapitulatif, XML et profils INI</a></li>
+      <li><a href="#usb">Images ISO et clés USB amorçables</a></li>
+      <li><a href="#problems">Résoudre un problème d’installation</a></li>
+      <li><a href="#updates">Guide et mises à jour</a></li>
+    </ol>
+  </nav>
+  <main id="main" tabindex="-1">
+    <section aria-labelledby="start">
+      <h2 id="start" tabindex="-1">Créer un premier fichier de réponses</h2>
+      <p>XMLator enregistre les choix d’installation dans <code>Autounattend.xml</code>. Le programme d’installation de Windows lit ce fichier au démarrage sur le support. Une question peut s’afficher si vous conservez la configuration manuelle de l’option correspondante.</p>
+      <ol><li>Choisissez la version, l’architecture et l’édition de Windows correspondant à votre image d’installation.</li><li>Pour le premier essai, choisissez la sélection manuelle des partitions. Vous pourrez identifier le disque dans le programme d’installation.</li><li>Réglez la langue, la région et le compte. Pour créer des comptes dans l’assistant, ajoutez au moins un administrateur local.</li><li>Vérifiez le récapitulatif, affichez l’aperçu et enregistrez le XML. Vous pouvez aussi créer une clé USB amorçable à partir d’un ISO.</li></ol>
+      <details><summary>Exemple pour un PC sous Windows 11 Pro</summary><p>Choisissez Windows 11, x64, Pro et UEFI / GPT. Définissez la langue et la disposition du clavier. Commencez par le choix manuel des partitions et vérifiez que l’ISO contient l’édition Pro.</p></details>
+    </section>
+    <section aria-labelledby="keyboard">
+      <h2 id="keyboard" tabindex="-1">Clavier et lecteur d’écran</h2>
+      <p><kbd>Tab</kbd> et <kbd>Maj+Tab</kbd> déplacent le focus entre les commandes. Utilisez les flèches dans une liste et la <kbd>barre d’espace</kbd> pour cocher ou décocher une case. Le titre de la fenêtre indique l’étape actuelle. Les boutons <strong>Précédent</strong> et <strong>Suivant</strong> changent d’étape.</p>
+      <ul><li><kbd>Ctrl+S</kbd> prépare l’enregistrement du XML. <kbd>Ctrl+Maj+S</kbd> enregistre un profil INI.</li><li><kbd>Ctrl+O</kbd> ouvre un profil. <kbd>Ctrl+Fin</kbd> ouvre le récapitulatif après vérification des comptes.</li><li>Le menu <strong>Aide</strong> contient les <strong>Raccourcis clavier</strong> et ce guide. Dans le navigateur, naviguez par titre ou utilisez la recherche. Appuyez sur Espace ou Entrée sur le titre d’un exemple pour le déplier.</li></ul>
+    </section>
+    <section aria-labelledby="windows">
+      <h2 id="windows" tabindex="-1">Windows, licence, édition et clé de produit</h2>
+      <p>Choisissez le système de l’ordinateur cible. La plupart des PC Intel et AMD utilisent x64. Windows sur Arm utilise ARM64. x86 désigne la version 32 bits. Les choix varient selon la version et l’architecture.</p>
+      <ul><li>Choisissez d’accepter les conditions de licence dans le fichier de réponses ou pendant l’installation.</li><li>Sélectionnez une édition telle que Home ou Pro. Un nom d’image exact ou un index est utile si vous connaissez le contenu de votre ISO.</li><li>La clé d’installation peut influer sur le choix de l’image. La clé d’activation active le système installé. Ignorer la demande de clé ou fournir une clé d’installation n’accorde pas de licence.</li></ul>
+    </section>
+    <section aria-labelledby="disk">
+      <h2 id="disk" tabindex="-1">Mode de démarrage, disque et partitions</h2>
+      <p>Sélectionnez d’abord le mode de démarrage. La clé USB créée par XMLator utilise le même mode.</p>
+      <ul><li><strong>UEFI / GPT</strong> propose le choix manuel, les partitions système avec une grande partition C ou les partitions système avec C et D. Pour C et D, saisissez la taille de C. D occupe l’espace restant.</li><li><strong>Legacy BIOS / MBR</strong> propose le choix manuel ou une partition C active sur tout le disque. Elle contient Windows et les fichiers de démarrage. Microsoft exige le mode UEFI pour Windows 11.</li><li>La partition EFI contient les fichiers de démarrage. MSR réserve de l’espace pour Windows. La partition de récupération facultative contient WinRE. Le plan indique l’ordre et la taille des partitions.</li></ul>
+      <p><strong>Une disposition prédéfinie efface toutes les partitions du disque sélectionné.</strong> Vérifiez le numéro du disque dans le programme d’installation. Choisissez <strong>Choisir manuellement dans le programme d’installation</strong> pour conserver des partitions ou identifier le disque sur le PC cible.</p>
+      <details><summary>Exemple de taille pour C</summary><p>Saisissez <code>102400</code> Mio pour attribuer 100 Gio à C. <kbd>Ctrl+A</kbd> sélectionne le nombre. <kbd>Tab</kbd> applique la valeur. D prend l’espace laissé par les partitions système et C.</p></details>
+    </section>
+    <section aria-labelledby="region">
+      <h2 id="region" tabindex="-1">Langue, région et nom de l’ordinateur</h2>
+      <p>La langue de l’assistant, celle de l’ISO et les réglages de Windows installé sont distincts. Changez la langue de l’assistant dans le menu <strong>Langue</strong> ou les paramètres. L’étape de langue et de région définit les réglages régionaux, le clavier et le fuseau horaire de Windows.</p>
+      <p>Choisissez la disposition qui servira à saisir le nom du compte et son mot de passe. Un nom d’ordinateur personnalisé permet de reconnaître le PC sur le réseau. Gardez le réglage par défaut si Windows doit attribuer le nom.</p>
+    </section>
+    <section aria-labelledby="accounts">
+      <h2 id="accounts" tabindex="-1">Comptes locaux et première ouverture de session</h2>
+      <p><strong>Non. Créez le compte dans le programme d’installation.</strong> laisse Windows configurer le compte pendant l’installation. Selon l’édition et les conditions d’installation, Windows peut proposer un compte Microsoft.</p>
+      <p>Avec <strong>Oui. Ajouter les comptes dans l’assistant.</strong>, ajoutez un compte et renseignez son nom ou demandez de le saisir à l’exportation. Il faut au moins un compte local doté des droits d’administrateur. Si la liste est vide, l’assistant bloque le passage à l’étape suivante et place le focus sur l’ajout d’un compte. Pour saisir le nom à l’exportation, ajoutez le compte avec cette option.</p>
+      <ul><li>En mode manuel, choisissez le compte après l’installation. L’ouverture automatique de session a lieu une seule fois et utilise le premier compte d’administrateur ajouté. Les règles de mot de passe dépendent de Windows.</li><li>Le saut de certaines pages et la configuration hors connexion nécessitent un administrateur local. Windows Server peut aussi demander un mot de passe pour le compte Administrateur intégré.</li><li>Le profil INI retient les données à demander. Saisissez les mots de passe à l’exportation. Le XML peut contenir des mots de passe et Base64 est réversible. Protégez donc le fichier.</li></ul>
+    </section>
+    <section aria-labelledby="advanced">
+      <h2 id="advanced" tabindex="-1">Paramètres avancés</h2>
+      <p>Les options varient selon Windows. Les réglages de première configuration permettent d’ignorer certaines pages prises en charge. Relisez le récapitulatif après un changement de compte ou de réseau.</p>
+      <ul><li>Les applications cochées sont sélectionnées pour la suppression. Vérifiez si le Microsoft Store, les fonctions vocales ou les composants du lecteur d’écran sont nécessaires.</li><li>Le programme d’installation standard utilise le fichier de réponses. DISM applique l’image dans Windows PE et crée les fichiers de démarrage pour la disposition choisie. Utilisez DiskPart pour préparer manuellement le disque en mode DISM.</li><li>Les composants XML et les scripts personnalisés servent aux déploiements préparés. Vérifiez le contenu et le moment d’exécution de chaque script.</li></ul>
+    </section>
+    <section aria-labelledby="oem">
+      <h2 id="oem" tabindex="-1">Pilotes, fichiers et scripts OEM</h2>
+      <p>Ajoutez des pilotes Windows PE si le programme d’installation en a besoin pour accéder à un disque ou à un autre périphérique. Indiquez séparément les pilotes destinés au Windows installé. Vous pouvez aussi joindre des fichiers à copier et des scripts à exécuter à certaines étapes.</p>
+      <p>La création de la clé USB ajoute ces fichiers. Lors de l’enregistrement du XML, choisissez un dossier distinct pour la structure du support. En mode standard, les fichiers OEM se placent dans <code>sources\$OEM$</code> et les pilotes Windows PE dans <code>$WinPEDriver$</code>. Conservez cette arborescence en copiant les fichiers.</p>
+    </section>
+    <section aria-labelledby="export">
+      <h2 id="export" tabindex="-1">Récapitulatif, XML et profils INI</h2>
+      <p>Vérifiez Windows, l’édition, le mode de démarrage, le plan des partitions, les comptes et la première configuration. Affichez l’aperçu du XML. Le nom de fichier proposé à l’enregistrement est <code>Autounattend.xml</code>.</p>
+      <p>Enregistrez un profil INI pour réutiliser vos choix dans XMLator. Le programme d’installation lit le XML à la racine du support d’installation.</p>
+      <details><summary>Réutiliser un profil sur plusieurs ordinateurs</summary><p>Enregistrez un profil vérifié qui demande le nom du compte à l’exportation. Rouvrez-le pour chaque ordinateur, vérifiez le disque et l’édition puis indiquez les données du compte lors de l’enregistrement du XML.</p></details>
+    </section>
+    <section aria-labelledby="usb">
+      <h2 id="usb" tabindex="-1">Images ISO et clés USB amorçables</h2>
+      <p>Choisissez le périphérique USB, puis un ISO local ou une source disponible. Avec <strong>Télécharger un ISO depuis le site de Microsoft</strong>, choisissez la version et la langue. L’offre dépend de Windows, de l’architecture et du service Microsoft. Windows 11 26H2 est proposé pour x64 et ARM64. Avec proszczok.pl, choisissez un fichier compatible dans le catalogue.</p>
+      <ol><li>Avant de choisir <strong>Créer une clé USB amorçable</strong>, vérifiez le nom, la capacité et le contenu du périphérique. Le formatage efface ses données.</li><li>Après confirmation, XMLator contrôle l’image et copie les fichiers d’installation, le fichier de réponses et les ajouts. Le titre et la barre de progression indiquent l’étape.</li><li>Démarrez le PC cible sur la clé dans le mode choisi pour les partitions. Répondez aux questions laissées à l’installation.</li></ol>
+    </section>
+    <section aria-labelledby="problems">
+      <h2 id="problems" tabindex="-1">Résoudre un problème d’installation</h2>
+      <details><summary>L’assistant demande un compte</summary><p>Ajoutez un administrateur local ou choisissez de créer le compte lors de l’installation. Si le nom doit être saisi plus tard, activez la demande à l’exportation.</p></details>
+      <details><summary>Une source ISO manque ou l’image ne correspond pas</summary><p>Vérifiez la connexion, Windows, l’architecture et l’édition. Actualisez les sources ISO si la commande est disponible. Vous pouvez sélectionner un ISO local compatible. Le programme d’installation détecte les éditions présentes dans cet ISO.</p></details>
+      <details><summary>La clé démarre mais le programme refuse la disposition</summary><p>Comparez l’entrée UEFI ou Legacy dans le menu de démarrage du PC avec le mode dans <strong>Disque et partitions</strong>. Utilisez le choix manuel si vous souhaitez conserver des partitions.</p></details>
+      <details><summary>Le programme d’installation pose toujours des questions</summary><p>Vérifiez le nom et l’emplacement de <code>Autounattend.xml</code>. Les réglages laissés à la configuration manuelle suivent les règles de votre version de Windows. Les journaux d’installation aident à rechercher une erreur.</p></details>
+    </section>
+    <section aria-labelledby="updates">
+      <h2 id="updates" tabindex="-1">Guide et mises à jour</h2>
+      <p>Le guide est fourni avec XMLator. Ouvrez <strong>Aide → Guide d’utilisation</strong> pour accéder au texte dans la langue active. Le guide fonctionne hors connexion. Après une mise à jour de l’application, rouvrez-le pour consulter la version fournie avec celle-ci.</p>
+      <p>Les paramètres permettent de rechercher des mises à jour et de configurer la vérification automatique. Les changements, le code et la documentation publique se trouvent dans le <a href="https://github.com/proszczok2002/XMLator">dépôt XMLator sur GitHub</a>.</p>
+    </section>
+  </main>
+</div>
+<footer class="wrap">
+  <p><a href="#top">Retour au début du guide</a></p>
+</footer>

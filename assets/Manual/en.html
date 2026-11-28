@@ -1,0 +1,109 @@
+<a class="skip" href="#main">Skip to the manual content</a>
+<header id="top" tabindex="-1">
+  <div class="wrap">
+    <p class="version">@@PRODUCT@@</p>
+    <h1>@@TITLE@@</h1>
+    <p>Prepare a Windows answer file, review your setup choices, and build installation media. Use the chapters to find what each part of the wizard does and what you can expect in Windows Setup.</p>
+    <form class="search" role="search" hidden>
+      <label for="manual-search">Search the manual</label>
+      <div class="search-controls">
+        <input type="search" id="manual-search" aria-controls="main">
+        <button type="reset">Clear search</button>
+      </div>
+      <p id="manual-results" role="status" data-count="Matching chapters — {count} of {total}" data-empty="No chapters match. Change the search terms or clear the search."></p>
+    </form>
+  </div>
+</header>
+<div class="wrap guide">
+  <nav aria-labelledby="contents-heading">
+    <h2 id="contents-heading">Contents</h2>
+    <ol>
+      <li><a href="#start">Create your first answer file</a></li>
+      <li><a href="#keyboard">Keyboard and screen reader</a></li>
+      <li><a href="#windows">Windows, license, edition, and product key</a></li>
+      <li><a href="#disk">Boot mode, disk, and partitions</a></li>
+      <li><a href="#region">Language, region, and computer name</a></li>
+      <li><a href="#accounts">Local accounts and first sign-in</a></li>
+      <li><a href="#advanced">Advanced settings</a></li>
+      <li><a href="#oem">OEM drivers, files, and scripts</a></li>
+      <li><a href="#export">Review, XML, and INI profiles</a></li>
+      <li><a href="#usb">ISO images and bootable USB drives</a></li>
+      <li><a href="#problems">Troubleshooting an installation</a></li>
+      <li><a href="#updates">The manual and updates</a></li>
+    </ol>
+  </nav>
+  <main id="main" tabindex="-1">
+    <section aria-labelledby="start">
+      <h2 id="start" tabindex="-1">Create your first answer file</h2>
+      <p>XMLator saves your installation choices in <code>Autounattend.xml</code>. Windows Setup reads this answer file when it starts from the installation media. Any choices you leave for manual setup may still be presented as prompts.</p>
+      <ol><li>Select the Windows version, architecture, and edition that match your installation image.</li><li>Use manual partition selection for your first test so you can identify the target drive in Setup.</li><li>Choose the language, regional settings, and account setup. If you choose to create accounts in the wizard, add a local administrator.</li><li>Review the choices, preview the XML, and save it. The review page can also use an ISO to build a bootable USB drive.</li></ol>
+      <details><summary>Example for a typical Windows 11 Pro PC</summary><p>Select Windows 11, x64, Pro, and UEFI / GPT. Pick your language and keyboard layout. Start with manual partition selection and check that the chosen ISO contains Pro.</p></details>
+    </section>
+    <section aria-labelledby="keyboard">
+      <h2 id="keyboard" tabindex="-1">Keyboard and screen reader</h2>
+      <p>Use <kbd>Tab</kbd> and <kbd>Shift+Tab</kbd> to move between controls. Use the arrow keys to choose a list item and <kbd>Space</kbd> to toggle a checkbox. The window title gives the current step. Use <strong>Back</strong> and <strong>Next</strong> to move between steps.</p>
+      <ul><li><kbd>Ctrl+S</kbd> prepares to save the XML file. <kbd>Ctrl+Shift+S</kbd> saves an INI profile.</li><li><kbd>Ctrl+O</kbd> opens a profile. <kbd>Ctrl+End</kbd> opens the review after checking your account choices.</li><li>The <strong>Help</strong> menu contains <strong>Keyboard commands</strong> and this manual. In the browser, navigate by heading or use the search field. Press Space or Enter on a collapsed example title to expand it.</li></ul>
+    </section>
+    <section aria-labelledby="windows">
+      <h2 id="windows" tabindex="-1">Windows, license, edition, and product key</h2>
+      <p>Choose the Windows version for the destination PC. Most Intel and AMD PCs use x64, and Windows on Arm uses ARM64. x86 means 32-bit Windows. The choices depend on the version and architecture.</p>
+      <ul><li>Choose whether to accept the license terms in the answer file or during Windows Setup.</li><li>Choose an edition from the list, such as Home or Pro. Use an exact image name or index if you know how images are laid out in your specific ISO.</li><li>A setup key can affect image selection. An activation key activates the installed system. Skipping the key prompt or supplying a setup key does not grant a license.</li></ul>
+    </section>
+    <section aria-labelledby="disk">
+      <h2 id="disk" tabindex="-1">Boot mode, disk, and partitions</h2>
+      <p>Choose the installer boot mode first. The USB drive you create with XMLator uses that same mode.</p>
+      <ul><li><strong>UEFI / GPT</strong> offers manual selection, system partitions and one large C partition, or system partitions with C and D. Enter the size of C for the split layout. D takes the space left after the other partitions.</li>
+      <li><strong>Legacy BIOS / MBR</strong> offers manual selection or one active C partition across the whole disk, including Windows and the boot files. Microsoft requires UEFI for Windows 11.</li>
+      <li>EFI contains boot files, MSR reserves space for Windows, and the optional WinRE partition contains the Windows recovery environment. Check the partition plan for the order and sizes.</li></ul>
+      <p><strong>Creating a preset layout erases all partitions on the selected disk.</strong> Verify the disk number in Setup. If you intend to preserve existing partitions or identify the disk on the destination computer, choose <strong>Manually in Setup</strong>.</p>
+      <details><summary>Example C partition size</summary><p>Type <code>102400</code> in the C partition size field to allocate 100 GiB. <kbd>Ctrl+A</kbd> selects the number and <kbd>Tab</kbd> applies it. D takes the space left after C and the system partitions.</p></details>
+    </section>
+    <section aria-labelledby="region">
+      <h2 id="region" tabindex="-1">Language, region, and computer name</h2>
+      <p>The wizard language, ISO language, and installed Windows settings serve different purposes. Change the wizard language from the <strong>Language</strong> menu or <strong>Settings</strong>. The language and region step controls Windows locale, keyboard layout, and time zone.</p>
+      <p>Choose the keyboard layout the user will expect when entering a name or password during Setup. Set a computer name if you need to identify the PC on a network. Keep the default if Windows should choose it.</p>
+    </section>
+    <section aria-labelledby="accounts">
+      <h2 id="accounts" tabindex="-1">Local accounts and first sign-in</h2>
+      <p><strong>No. Set up the account in Setup.</strong> leaves account setup to Windows during installation. Windows may offer a Microsoft account according to the edition and setup conditions.</p>
+      <p>With <strong>Yes. Add accounts in the wizard.</strong>, select <strong>Add account…</strong> and enter a name or set the wizard to ask for it on export. Add at least one local account with administrator permissions. An empty list stops navigation and moves focus to Add account. For a name entered on export, add an account with that option enabled.</p>
+      <ul><li>With manual sign-in, choose the account after Setup. One-time sign-in uses the first added administrator account. Password rules depend on the version of Windows.</li><li>The supported screen-skipping and offline setup options require a local administrator. Windows Server may also need a password for the built-in Administrator.</li><li>An INI profile remembers which details to ask for. Enter passwords when exporting. The XML may contain passwords. Base64 encoding is reversible, so treat the file as sensitive.</li></ul>
+    </section>
+    <section aria-labelledby="advanced">
+      <h2 id="advanced" tabindex="-1">Advanced settings</h2>
+      <p>Available options depend on the version of Windows. Initial setup settings control the supported prompts. Review them after changing account or network settings.</p>
+      <ul><li>Checked apps are selected for removal. Consider whether the user needs Microsoft Store, speech features, or components used by a screen reader.</li><li>Standard Windows Setup consumes the answer file. The DISM option applies the image in Windows PE and creates boot files for the chosen layout. Use DiskPart to prepare the disk manually in DISM mode.</li><li>Custom XML components and scripts are for prepared deployments. Review each script and when it runs before using it on the target PC.</li></ul>
+    </section>
+    <section aria-labelledby="oem">
+      <h2 id="oem" tabindex="-1">OEM drivers, files, and scripts</h2>
+      <p>Add Windows PE drivers when Setup needs them to access a drive or other device. Drivers for the installed Windows image go in the separate field. You can also copy files and schedule scripts at supported stages.</p>
+      <p>Creating a USB drive includes these files. When saving XML, choose a separate folder for the media structure if you need the added files. In standard Windows Setup, OEM files belong under <code>sources\$OEM$</code> and Windows PE drivers under <code>$WinPEDriver$</code>. Preserve the folder structure when copying it to the media.</p>
+    </section>
+    <section aria-labelledby="export">
+      <h2 id="export" tabindex="-1">Review, XML, and INI profiles</h2>
+      <p>Review Windows, the edition, boot mode, partition plan, accounts, and the first-run settings. <strong>Preview the XML file</strong> shows what the file will contain. <strong>Save XML</strong> suggests <code>Autounattend.xml</code>.</p>
+      <p><strong>Save INI profile</strong> stores your choices for reuse in XMLator. Select <strong>Open a saved profile</strong> next time to edit them. Windows Setup reads the XML file from the root of the installation media.</p>
+      <details><summary>Reuse a profile on several computers</summary><p>Save a tested profile that asks for the account name on export. For each computer, open it, verify the disk and edition, and enter the proper account details when saving the answer file.</p></details>
+    </section>
+    <section aria-labelledby="usb">
+      <h2 id="usb" tabindex="-1">ISO images and bootable USB drives</h2>
+      <p>Select the USB device, then choose a local ISO or an available download source. With <strong>Download an ISO from Microsoft</strong>, choose a release and language. Availability depends on Windows, architecture, and Microsoft's service. Windows 11 26H2 is offered for x64 and ARM64. With proszczok.pl, choose a compatible file from its catalog.</p>
+      <ol><li>Before selecting <strong>Create a bootable USB drive</strong>, verify the device name, capacity, and contents. Formatting removes its data.</li><li>After confirmation, XMLator checks the image, copies the installation files and the answer file, and adds the OEM files. The title and progress bar report the current stage.</li><li>Boot the destination computer from the prepared USB drive in the mode chosen on the disk page. Respond to any prompts you left for manual setup.</li></ol>
+    </section>
+    <section aria-labelledby="problems">
+      <h2 id="problems" tabindex="-1">Troubleshooting an installation</h2>
+      <details><summary>The wizard asks me for an account</summary><p>Add a local administrator or choose to configure accounts during Windows Setup. Use the ask-on-export option if the account name will be provided later.</p></details>
+      <details><summary>An ISO source disappeared or the image does not match</summary><p>Check your connection, Windows version, architecture, and edition. Refresh ISO sources when available. You can also choose a compatible local ISO. Setup detects available editions from that image.</p></details>
+      <details><summary>The USB boots, but Setup rejects the disk layout</summary><p>Check whether you selected the UEFI or Legacy entry in the boot menu. Compare it with the mode in <strong>Disk and partitions</strong>. Use manual partition selection if you want to preserve an existing layout.</p></details>
+      <details><summary>Setup still shows prompts</summary><p>Verify the name and location of <code>Autounattend.xml</code>. Screens you leave for manual setup follow the rules of the Windows version. Windows Setup logs can help you find an error.</p></details>
+    </section>
+    <section aria-labelledby="updates">
+      <h2 id="updates" tabindex="-1">The manual and updates</h2>
+      <p>The manual ships with XMLator. Select <strong>Help → User manual</strong> to open it in the active language. It works offline, and the next time you open it after updating the program you will see the manual for that version.</p>
+      <p>Use Settings to check for updates and manage automatic checks. The change history, code, and public documentation are in the <a href="https://github.com/proszczok2002/XMLator">XMLator repository on GitHub</a>.</p>
+    </section>
+  </main>
+</div>
+<footer class="wrap">
+  <p><a href="#top">Back to the top of the manual</a></p>
+</footer>

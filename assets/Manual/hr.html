@@ -1,0 +1,107 @@
+<a class="skip" href="#main">Prijeđi na sadržaj priručnika</a>
+<header id="top" tabindex="-1">
+  <div class="wrap">
+    <p class="version">@@PRODUCT@@</p>
+    <h1>@@TITLE@@</h1>
+    <p>Pripremite datoteku odgovora za Windows, provjerite postavke i izradite instalacijski USB pogon. Poglavlja objašnjavaju odluke u asistentu i pitanja koja se poslije mogu prikazati u instalacijskom programu.</p>
+    <form class="search" role="search" hidden>
+      <label for="manual-search">Pretraži priručnik</label>
+      <div class="search-controls">
+        <input type="search" id="manual-search" aria-controls="main">
+        <button type="reset">Očisti pretraživanje</button>
+      </div>
+      <p id="manual-results" role="status" data-count="Pronađena poglavlja — {count} od {total}" data-empty="Nema odgovarajućih poglavlja. Promijenite ili očistite pojam za pretraživanje."></p>
+    </form>
+  </div>
+</header>
+<div class="wrap guide">
+  <nav aria-labelledby="contents-heading">
+    <h2 id="contents-heading">Sadržaj</h2>
+    <ol>
+      <li><a href="#start">Prva datoteka odgovora</a></li>
+      <li><a href="#keyboard">Tipkovnica i čitač zaslona</a></li>
+      <li><a href="#windows">Windows, licenca, izdanje i ključ proizvoda</a></li>
+      <li><a href="#disk">Način pokretanja, disk i particije</a></li>
+      <li><a href="#region">Jezik, regija i naziv računala</a></li>
+      <li><a href="#accounts">Lokalni računi i prva prijava</a></li>
+      <li><a href="#advanced">Napredne postavke</a></li>
+      <li><a href="#oem">OEM upravljački programi, datoteke i skripte</a></li>
+      <li><a href="#export">Sažetak, XML i INI profili</a></li>
+      <li><a href="#usb">ISO slike i USB pogoni za pokretanje</a></li>
+      <li><a href="#problems">Rješavanje poteškoća pri instalaciji</a></li>
+      <li><a href="#updates">Priručnik i ažuriranja</a></li>
+    </ol>
+  </nav>
+  <main id="main" tabindex="-1">
+    <section aria-labelledby="start">
+      <h2 id="start" tabindex="-1">Prva datoteka odgovora</h2>
+      <p>XMLator sprema postavke instalacije u datoteku <code>Autounattend.xml</code>. Instalacijski program sustava Windows čita je pri pokretanju s medija. Ako neku postavku ostavite za ručni odabir, instalacijski program može tražiti odgovor.</p>
+      <ol><li>Odaberite verziju sustava Windows, arhitekturu i izdanje koje odgovara instalacijskoj slici.</li><li>Pri prvom ispitivanju odaberite ručno particioniranje. Tako možete prepoznati ciljni disk tijekom instalacije.</li><li>Postavite jezik, regiju i način stvaranja računa. Ako račune dodajete u asistentu, dodajte i lokalnog administratora.</li><li>Provjerite sažetak, otvorite pretpregled XML-a i spremite datoteku. U istom koraku možete izraditi instalacijski USB pogon iz ISO slike.</li></ol>
+      <details><summary>Primjer za računalo sa sustavom Windows 11 Pro</summary><p>Odaberite Windows 11, x64, Pro i UEFI / GPT. Postavite jezik i raspored tipkovnice. Za prvi pokušaj ručno odaberite particije i provjerite sadrži li ISO izdanje Pro.</p></details>
+    </section>
+    <section aria-labelledby="keyboard">
+      <h2 id="keyboard" tabindex="-1">Tipkovnica i čitač zaslona</h2>
+      <p>Tipke <kbd>Tab</kbd> i <kbd>Shift+Tab</kbd> pomiču fokus između kontrola. Stavku s popisa odaberite strelicama. <kbd>Razmaknica</kbd> uključuje ili isključuje potvrdni okvir. U naslovu prozora prikazuje se trenutačni korak. Za promjenu koraka upotrijebite <strong>Natrag</strong> ili <strong>Dalje</strong>.</p>
+      <ul><li><kbd>Ctrl+S</kbd> priprema spremanje XML-a, a <kbd>Ctrl+Shift+S</kbd> sprema INI profil.</li><li><kbd>Ctrl+O</kbd> otvara profil. <kbd>Ctrl+End</kbd> otvara sažetak nakon provjere postavki računa.</li><li>Izbornik <strong>Pomoć</strong> sadrži <strong>Tipkovne prečace</strong> i ovaj priručnik. U pregledniku se krećite po naslovima ili pretražite sadržaj. Pritisnite razmaknicu ili Enter na naslovu primjera da ga otvorite.</li></ul>
+    </section>
+    <section aria-labelledby="windows">
+      <h2 id="windows" tabindex="-1">Windows, licenca, izdanje i ključ proizvoda</h2>
+      <p>Odaberite sustav za ciljno računalo. Većina računala s procesorima Intel i AMD koristi x64. Windows na računalima s procesorima Arm koristi ARM64. x86 znači 32-bitnu verziju. Dostupne mogućnosti ovise o sustavu i arhitekturi.</p>
+      <ul><li>Odlučite želite li prihvatiti uvjete licence u datoteci odgovora ili tijekom instalacije.</li><li>Na popisu odaberite izdanje kao što je Home ili Pro. Točan naziv ili indeks slike koristite kad poznajete sadržaj ISO-a.</li><li>Instalacijski ključ može utjecati na odabir slike. Aktivacijski ključ aktivira instalirani sustav. Preskakanje upita o ključu ili unos instalacijskog ključa ne daje licencu.</li></ul>
+    </section>
+    <section aria-labelledby="disk">
+      <h2 id="disk" tabindex="-1">Način pokretanja, disk i particije</h2>
+      <p>Najprije odaberite način pokretanja instalacijskog medija. USB pogon izrađen u XMLatoru koristi isti način.</p>
+      <ul><li><strong>UEFI / GPT</strong> nudi ručni odabir, sistemske particije i jednu veliku particiju C ili sistemske particije uz C i D. Za C i D unesite veličinu particije C. D zauzima preostali prostor.</li><li><strong>Legacy BIOS / MBR</strong> nudi ručni odabir ili jednu aktivnu particiju C na cijelom disku, s datotekama sustava i za pokretanje. Sistemski preduvjeti za Windows 11 uključuju UEFI.</li><li>EFI sadrži datoteke za pokretanje. MSR je rezerviran za Windows. Neobavezna particija za oporavak sadrži WinRE. U planu particija provjerite redoslijed i veličine.</li></ul>
+      <p><strong>Izrada zadanog rasporeda briše sve particije na odabranom disku.</strong> Provjerite broj diska u instalacijskom programu. Za zadržavanje postojećih particija ili odabir diska na ciljnom računalu odaberite <strong>Ručni odabir u instalacijskom programu</strong>.</p>
+      <details><summary>Primjer veličine particije C</summary><p>Unesite <code>102400</code> MiB za 100 GiB na particiji C. <kbd>Ctrl+A</kbd> označava broj, a <kbd>Tab</kbd> primjenjuje promjenu. D zauzima prostor koji preostane nakon sistemskih particija i particije C.</p></details>
+    </section>
+    <section aria-labelledby="region">
+      <h2 id="region" tabindex="-1">Jezik, regija i naziv računala</h2>
+      <p>Jezik asistenta, jezik ISO slike i postavke instaliranog sustava služe različitim svrhama. Jezik asistenta promijenite u izborniku <strong>Jezik</strong> ili u postavkama. U koraku za jezik i regiju odaberite regiju, raspored tipkovnice i vremensku zonu.</p>
+      <p>Odaberite tipkovnicu koju će korisnik očekivati pri unosu imena i lozinke. Naziv računala olakšava njegovo prepoznavanje na mreži. Ako želite da naziv odredi Windows, ostavite zadanu postavku.</p>
+    </section>
+    <section aria-labelledby="accounts">
+      <h2 id="accounts" tabindex="-1">Lokalni računi i prva prijava</h2>
+      <p><strong>Ne. Postavite račun u instalacijskom programu.</strong> ostavlja postavljanje računa za instalaciju sustava Windows. Instalacijski program može ponuditi Microsoftov račun, ovisno o izdanju i uvjetima instalacije.</p>
+      <p>Uz <strong>Da. Dodajte račune u asistentu.</strong> dodajte račun i unesite njegovo ime ili uključite upit za ime pri izvozu. Najmanje jedan lokalni račun mora imati administratorske ovlasti. Ako je popis prazan, asistent zaustavlja prelazak na sljedeći korak i postavlja fokus na gumb za dodavanje računa. Za kasniji unos imena dodajte račun s uključenim upitom.</p>
+      <ul><li>Uz ručnu prijavu odabirete račun nakon instalacije. Jednokratna prijava koristi prvi dodani administratorski račun. Pravila za lozinke ovise o sustavu Windows.</li><li>Preskakanje podržanih zaslona i postavljanje bez interneta zahtijevaju lokalnog administratora. Windows Server može tražiti lozinku ugrađenog administratorskog računa.</li><li>INI profil pamti koje podatke treba zatražiti. Lozinke unosite pri izvozu. XML može sadržavati lozinke. Base64 se može dekodirati, stoga pažljivo pohranite datoteku.</li></ul>
+    </section>
+    <section aria-labelledby="advanced">
+      <h2 id="advanced" tabindex="-1">Napredne postavke</h2>
+      <p>Dostupne mogućnosti ovise o verziji sustava Windows. Postavke prvog pokretanja omogućuju preskakanje podržanih zaslona. Nakon promjene računa ili mrežnih postavki provjerite sažetak.</p>
+      <ul><li>Označene aplikacije predviđene su za uklanjanje. Provjerite jesu li potrebni Microsoft Store, govorne značajke ili komponente čitača zaslona.</li><li>U standardnom načinu Windows koristi datoteku odgovora. DISM primjenjuje sliku u okruženju Windows PE i priprema datoteke za pokretanje. Za ručnu pripremu diska u načinu DISM upotrijebite DiskPart.</li><li>Prilagođene XML komponente i skripte namijenjene su pripremljenim instalacijama. Provjerite sadržaj i fazu izvršavanja.</li></ul>
+    </section>
+    <section aria-labelledby="oem">
+      <h2 id="oem" tabindex="-1">OEM upravljački programi, datoteke i skripte</h2>
+      <p>Dodajte upravljačke programe za Windows PE ako ih instalacijski program treba za pristup disku ili uređaju. Zasebno navedite upravljačke programe za instalirani Windows. Možete dodati i datoteke za kopiranje te skripte za pojedine faze instalacije.</p>
+      <p>XMLator pri izradi USB pogona dodaje potrebne datoteke. Pri spremanju XML-a možete odabrati posebnu mapu za strukturu medija. U standardnom načinu OEM datoteke idu u <code>sources\$OEM$</code>, a upravljački programi za Windows PE u <code>$WinPEDriver$</code>. Pri kopiranju zadržite tu strukturu.</p>
+    </section>
+    <section aria-labelledby="export">
+      <h2 id="export" tabindex="-1">Sažetak, XML i INI profili</h2>
+      <p>Provjerite Windows, izdanje, način pokretanja, plan particija, račune i početno postavljanje. Otvorite pretpregled XML-a. Predloženi naziv datoteke pri spremanju je <code>Autounattend.xml</code>.</p>
+      <p>Spremite INI profil da biste postavke mogli ponovno otvoriti u XMLatoru. Windows pri instalaciji čita XML datoteku iz korijenske mape instalacijskog medija.</p>
+      <details><summary>Ponovna uporaba profila na više računala</summary><p>Spremite provjereni profil koji traži ime računa pri izvozu. Otvorite ga za svako računalo, provjerite disk i izdanje te unesite odgovarajuće podatke pri spremanju XML-a.</p></details>
+    </section>
+    <section aria-labelledby="usb">
+      <h2 id="usb" tabindex="-1">ISO slike i USB pogoni za pokretanje</h2>
+      <p>Odaberite USB uređaj, a zatim lokalni ISO ili dostupan izvor preuzimanja. Uz <strong>Preuzmi ISO s Microsoftovog web-mjesta</strong> odaberite verziju i jezik. Dostupnost ovisi o sustavu, arhitekturi i Microsoftovoj usluzi. Windows 11 26H2 dostupan je za x64 i ARM64. Na proszczok.pl odaberite odgovarajuću datoteku iz kataloga.</p>
+      <ol><li>Prije odabira <strong>Izradi USB pogon za pokretanje</strong> provjerite naziv, kapacitet i sadržaj uređaja. Formatiranjem se brišu podaci.</li><li>Nakon potvrde XMLator provjerava sliku i kopira instalacijske datoteke, XML i dodatke. Naslov prozora i traka napretka prikazuju trenutačnu fazu.</li><li>Pokrenite ciljno računalo s USB pogona u načinu koji ste odabrali na stranici za disk. Odgovorite na preostala pitanja instalacijskog programa.</li></ol>
+    </section>
+    <section aria-labelledby="problems">
+      <h2 id="problems" tabindex="-1">Rješavanje poteškoća pri instalaciji</h2>
+      <details><summary>Asistent traži račun</summary><p>Dodajte lokalnog administratora ili odaberite postavljanje računa tijekom instalacije. Ako ime želite unijeti kasnije, uključite upit pri izvozu.</p></details>
+      <details><summary>Nedostaje izvor ISO-a ili slika ne odgovara</summary><p>Provjerite vezu, verziju sustava, arhitekturu i izdanje. Osvježite izvore ISO-a ako je ta mogućnost dostupna. Možete odabrati i odgovarajući lokalni ISO. Instalacijski program prepoznaje izdanja na slici.</p></details>
+      <details><summary>USB se pokreće, ali instalacijski program odbija raspored diska</summary><p>U izborniku za pokretanje provjerite jeste li odabrali UEFI ili Legacy. Usporedite s postavkom na stranici <strong>Disk i particije</strong>. Za zadržavanje postojećih particija odaberite ručnu pripremu.</p></details>
+      <details><summary>Instalacijski program i dalje postavlja pitanja</summary><p>Provjerite naziv i mjesto datoteke <code>Autounattend.xml</code>. Stranice ostavljene za ručno postavljanje prikazuju se prema pravilima verzije sustava. Zapisnici instalacije mogu pomoći pri traženju pogreške.</p></details>
+    </section>
+    <section aria-labelledby="updates">
+      <h2 id="updates" tabindex="-1">Priručnik i ažuriranja</h2>
+      <p>Priručnik je dio XMLatora. Odaberite <strong>Pomoć → Priručnik za korisnike</strong> za prikaz na aktivnom jeziku. Radi i bez interneta. Nakon ažuriranja programa ponovo otvorite priručnik da biste dobili sadržaj iz nove verzije.</p>
+      <p>U postavkama možete provjeriti ažuriranja i uključiti automatsku provjeru. Promjene, izvorni kod i javna dokumentacija dostupni su u <a href="https://github.com/proszczok2002/XMLator">repozitoriju XMLatora na GitHubu</a>.</p>
+    </section>
+  </main>
+</div>
+<footer class="wrap">
+  <p><a href="#top">Povratak na početak priručnika</a></p>
+</footer>

@@ -1,4 +1,7 @@
 {
+  "User manual": "Guide d’utilisation",
+  "Add at least one account with administrator permissions. To configure the account during Windows installation, choose No.": "Ajoutez au moins un compte avec des droits d’administrateur. Pour configurer le compte pendant l’installation de Windows, choisissez Non.",
+  "Configure the account during Windows installation.": "Configurer le compte pendant l’installation de Windows.",
   "Legacy BIOS / MBR (Windows 11 requirements not met)": "Legacy BIOS / MBR (exigences de Windows 11 non remplies)",
   "Manually in DiskPart": "Manuellement dans DiskPart",
   "The disk number must be between 0 and 999.": "Le numéro du disque doit être compris entre 0 et 999.",

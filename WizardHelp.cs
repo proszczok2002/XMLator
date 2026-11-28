@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace XMLator;
 
 internal sealed partial class Wizard
@@ -58,6 +60,12 @@ internal sealed partial class Wizard
 
         static char Mnemonic(string label, char fallback) =>
             label.Select(char.ToUpperInvariant).FirstOrDefault(letter => Control.IsMnemonic(letter, label), fallback);
+    }
+
+    private void OpenManual()
+    {
+        string path = UserManual.Save(UiLanguage, ProductCaption, AppContext.BaseDirectory);
+        Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })?.Dispose();
     }
 
     private void ShowAbout()

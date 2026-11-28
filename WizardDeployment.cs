@@ -40,6 +40,8 @@ internal sealed partial class Wizard
                 RefreshSignIn();
             }), "Wybierz Tak, a następnie użyj przycisku Dodaj konto. Samodzielnie podajesz jego nazwę i wybierasz uprawnienia.",
             "Choose Yes, then use Add account. You enter its name and choose its permissions.");
+        local.Note(L("Dodaj przynajmniej jedno konto z uprawnieniami administratora. Jeśli wolisz utworzyć konto podczas instalacji Windows, wybierz Nie.",
+            "Add at least one account with administrator permissions. To configure the account during Windows installation, choose No."));
         var list = local.List(L("Konta lokalne", "Local accounts"), []);
         void Refresh(int index)
         {
@@ -50,7 +52,7 @@ internal sealed partial class Wizard
             RefreshSignIn();
         }
         Refresh(0);
-        local.Button(L("&Dodaj konto…", "&Add account…"), () =>
+        addLocalAccount = local.Button(L("&Dodaj konto…", "&Add account…"), () =>
         {
             var user = EditUser(new LocalUser());
             if (user is null)
@@ -126,6 +128,26 @@ internal sealed partial class Wizard
             ExpressPageOption(f);
         }
         RefreshSignIn();
+    }
+
+    private bool CheckAccountStep()
+    {
+        try
+        {
+            AnswerFile.ValidateAccountSelection(profile);
+            return true;
+        }
+        catch (SetupException error)
+        {
+            if (step != AccountsStep)
+            {
+                step = AccountsStep;
+                ShowStep();
+            }
+            Error(error);
+            addLocalAccount?.Select();
+            return false;
+        }
     }
 
     private string UserLabel(LocalUser user)
@@ -315,6 +337,8 @@ internal sealed partial class Wizard
                 lines.Add(L("Windows 11 może sam zalogować jedyne konto bez hasła także po restarcie.",
                     "Windows 11 may also sign in to the only account without a password after a restart."));
         }
+        else
+            lines.Add(L("Konfiguracja konta podczas instalacji Windows.", "Configure the account during Windows installation."));
         if (profile.Target.Server && profile.SetServerAdministratorPassword)
             lines.Add(L("Hasło wbudowanego Administratora Windows Server zostanie podane przy eksporcie.",
                 "The built-in Windows Server Administrator password will be entered on export."));
@@ -480,6 +504,8 @@ internal sealed partial class Wizard
         if (working)
             return;
         Validate();
+        if (!CheckAccountStep())
+            return;
         if (step != Steps.Length - 1 && profile.RequiresDiskConsent && !profile.ConfirmWipe)
         {
             step = Steps.Length - 1;

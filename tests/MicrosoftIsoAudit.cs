@@ -33,7 +33,7 @@ internal static class MicrosoftIsoAudit
             throw new InvalidOperationException("The live source scan failed.", failure);
     }
 
-    internal static void Resolve(string version, string release, string architecture, string culture)
+    internal static void Resolve(string version, string release, string architecture, string culture, string? output = null)
     {
         var product = MicrosoftIsoCatalog.Products.SingleOrDefault(item => item.Version == version && item.Release == release)
             ?? new IsoProduct(version, release, [architecture]);
@@ -49,6 +49,18 @@ internal static class MicrosoftIsoAudit
                 using var client = new HttpClient();
                 await CheckHeader(client, link.Uri);
                 Console.WriteLine($"{version} {release}, {architecture}, {culture}: {link.Uri.Host}{link.Uri.AbsolutePath}, valid ISO header, SHA-256 {link.Sha256 ?? "unpublished with link"}.");
+                if (output is not null)
+                {
+                    await IsoDownload.Save(link.Uri, output, new Progress<int>(value =>
+                    {
+                        if (value >= 0 && value % 10 == 0)
+                            Console.WriteLine($"Download progress {value}%.");
+                    }), CancellationToken.None, overwrite: false, expectedSha256: link.Sha256);
+                    var image = new FileInfo(output);
+                    using var source = image.OpenRead();
+                    string checksum = Convert.ToHexString(await System.Security.Cryptography.SHA256.HashDataAsync(source));
+                    Console.WriteLine($"Saved {image.Length} bytes, SHA-256 {checksum}.");
+                }
             }
             catch (Exception error) { failure = error; }
             finally { owner.Close(); }

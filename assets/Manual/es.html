@@ -1,0 +1,107 @@
+<a class="skip" href="#main">Saltar al contenido del manual</a>
+<header id="top" tabindex="-1">
+  <div class="wrap">
+    <p class="version">@@PRODUCT@@</p>
+    <h1>@@TITLE@@</h1>
+    <p>Prepara un archivo de respuesta de Windows, comprueba los ajustes y crea una unidad de instalación. Los capítulos explican las opciones del asistente y las preguntas que pueden aparecer durante la instalación.</p>
+    <form class="search" role="search" hidden>
+      <label for="manual-search">Buscar en el manual</label>
+      <div class="search-controls">
+        <input type="search" id="manual-search" aria-controls="main">
+        <button type="reset">Borrar búsqueda</button>
+      </div>
+      <p id="manual-results" role="status" data-count="Capítulos que coinciden — {count} de {total}" data-empty="No hay coincidencias. Cambia los términos o borra la búsqueda."></p>
+    </form>
+  </div>
+</header>
+<div class="wrap guide">
+  <nav aria-labelledby="contents-heading">
+    <h2 id="contents-heading">Índice</h2>
+    <ol>
+      <li><a href="#start">Crear el primer archivo de respuesta</a></li>
+      <li><a href="#keyboard">Teclado y lector de pantalla</a></li>
+      <li><a href="#windows">Windows, licencia, edición y clave de producto</a></li>
+      <li><a href="#disk">Modo de arranque, disco y particiones</a></li>
+      <li><a href="#region">Idioma, región y nombre del equipo</a></li>
+      <li><a href="#accounts">Cuentas locales y primer inicio de sesión</a></li>
+      <li><a href="#advanced">Configuración avanzada</a></li>
+      <li><a href="#oem">Controladores, archivos y scripts OEM</a></li>
+      <li><a href="#export">Resumen, archivos XML y perfiles INI</a></li>
+      <li><a href="#usb">Imágenes ISO y unidades USB de arranque</a></li>
+      <li><a href="#problems">Resolver problemas de instalación</a></li>
+      <li><a href="#updates">Manual y actualizaciones</a></li>
+    </ol>
+  </nav>
+  <main id="main" tabindex="-1">
+    <section aria-labelledby="start">
+      <h2 id="start" tabindex="-1">Crear el primer archivo de respuesta</h2>
+      <p>XMLator guarda las opciones de instalación en <code>Autounattend.xml</code>. El instalador de Windows lee este archivo al arrancar desde el medio de instalación. Puede pedirte los datos que dejes para configurar manualmente.</p>
+      <ol><li>Elige la versión de Windows, la arquitectura y la edición que coincidan con la imagen de instalación.</li><li>En la primera prueba, elige las particiones manualmente para identificar el disco en el instalador.</li><li>Configura el idioma, la región y la cuenta. Si decides añadir cuentas en el asistente, incluye una cuenta de administrador local.</li><li>Revisa el resumen, abre la vista previa y guarda el XML. En ese mismo paso puedes crear una unidad USB de arranque a partir de un ISO.</li></ol>
+      <details><summary>Ejemplo para un equipo típico con Windows 11 Pro</summary><p>Elige Windows 11, x64, Pro y UEFI / GPT. Configura el idioma y la distribución del teclado. Usa la selección manual de particiones en la primera prueba y comprueba que el ISO incluya Pro.</p></details>
+    </section>
+    <section aria-labelledby="keyboard">
+      <h2 id="keyboard" tabindex="-1">Teclado y lector de pantalla</h2>
+      <p>Usa <kbd>Tab</kbd> y <kbd>Mayús+Tab</kbd> para cambiar de control, las flechas para elegir en una lista y <kbd>Espacio</kbd> para marcar o desmarcar una casilla. El título indica el paso actual. Usa <strong>Atrás</strong> y <strong>Siguiente</strong> para moverte entre pasos.</p>
+      <ul><li><kbd>Ctrl+S</kbd> prepara la exportación a XML. <kbd>Ctrl+Mayús+S</kbd> guarda un perfil INI.</li><li><kbd>Ctrl+O</kbd> abre un perfil. <kbd>Ctrl+Fin</kbd> abre el resumen después de comprobar los ajustes de las cuentas.</li><li>El menú <strong>Ayuda</strong> contiene los <strong>Métodos abreviados de teclado</strong> y este manual. En el navegador puedes desplazarte por encabezados o usar el buscador. Usa Espacio o Intro sobre un ejemplo plegado para abrirlo.</li></ul>
+    </section>
+    <section aria-labelledby="windows">
+      <h2 id="windows" tabindex="-1">Windows, licencia, edición y clave de producto</h2>
+      <p>Elige el sistema que instalarás en el equipo de destino. La mayoría de los equipos Intel y AMD usan x64. Windows en Arm usa ARM64. x86 corresponde a 32 bits. Las opciones dependen del sistema y de la arquitectura.</p>
+      <ul><li>Decide si quieres aceptar la licencia en el archivo de respuesta o durante la instalación.</li><li>Elige en la lista la edición, por ejemplo Home o Pro. Usa un nombre de imagen o un índice exacto si conoces el contenido de ese ISO.</li><li>La clave de instalación puede intervenir en la elección de la imagen. La clave de activación activa Windows después de instalarlo. Omitir la pregunta o indicar una clave de instalación no concede una licencia.</li></ul>
+    </section>
+    <section aria-labelledby="disk">
+      <h2 id="disk" tabindex="-1">Modo de arranque, disco y particiones</h2>
+      <p>Elige primero el modo de arranque. La unidad USB que prepares con XMLator usará ese mismo modo.</p>
+      <ul><li><strong>UEFI / GPT</strong> permite elegir manualmente, crear las particiones de sistema y una partición C grande, o crear las particiones de sistema con C y D. En el último caso, indica el tamaño de C. La partición D ocupará el espacio que quede.</li><li><strong>Legacy BIOS / MBR</strong> permite elegir manualmente o crear una partición C activa en todo el disco. Contiene Windows y los archivos de arranque. Los requisitos de Microsoft para Windows 11 incluyen UEFI.</li><li>EFI contiene archivos de arranque, MSR reserva espacio para Windows y la partición de recuperación opcional contiene WinRE. El plan muestra el orden y el tamaño de las particiones.</li></ul>
+      <p><strong>Crear una distribución predefinida borra todas las particiones del disco seleccionado.</strong> Comprueba el número del disco en el programa de instalación. Para conservar particiones existentes o identificar el disco en el equipo de destino, elige <strong>Seleccionar manualmente en el programa de instalación</strong>.</p>
+      <details><summary>Ejemplo de tamaño para C</summary><p>Introduce <code>102400</code> MiB para asignar 100 GiB a C. <kbd>Ctrl+A</kbd> selecciona el número y <kbd>Tab</kbd> aplica el cambio. D ocupa el espacio que dejen C y las particiones de sistema.</p></details>
+    </section>
+    <section aria-labelledby="region">
+      <h2 id="region" tabindex="-1">Idioma, región y nombre del equipo</h2>
+      <p>El idioma del asistente, el idioma del ISO y la configuración de Windows instalado son opciones distintas. Cambia el idioma del asistente desde el menú <strong>Idioma</strong> o los ajustes. El paso de idioma y región configura Windows, el teclado y la zona horaria.</p>
+      <p>Elige la distribución que se usará al escribir el nombre de cuenta o la contraseña. Un nombre de equipo propio ayuda a identificarlo en la red. Mantén el ajuste predeterminado si quieres que Windows lo elija.</p>
+    </section>
+    <section aria-labelledby="accounts">
+      <h2 id="accounts" tabindex="-1">Cuentas locales y primer inicio de sesión</h2>
+      <p><strong>No. Configurar la cuenta en el programa de instalación de Windows.</strong> deja la cuenta para la instalación. Windows puede ofrecer una cuenta de Microsoft según la edición y las condiciones de instalación.</p>
+      <p>Si eliges <strong>Sí. Añadir cuentas en el asistente.</strong>, añade una cuenta y escribe su nombre o pide que se solicite al exportar. Debe haber al menos una cuenta local con permisos de administrador. Si la lista está vacía, el asistente bloquea el avance y lleva el foco al botón para añadir una cuenta. Para dejar el nombre para más tarde, añade la cuenta con esa opción.</p>
+      <ul><li>Con el inicio de sesión manual, eliges la cuenta después de instalar Windows. El inicio de sesión único usa el primer administrador añadido. Las reglas de contraseña dependen de Windows.</li><li>Las opciones de omitir pantallas y configurar sin conexión requieren un administrador local. Windows Server puede pedir una contraseña para la cuenta Administrador integrada.</li><li>El perfil INI recuerda qué datos debe solicitar. Introduce las contraseñas al exportar. El XML puede contenerlas. Base64 es reversible, así que guarda el XML con cuidado.</li></ul>
+    </section>
+    <section aria-labelledby="advanced">
+      <h2 id="advanced" tabindex="-1">Configuración avanzada</h2>
+      <p>Las opciones dependen del sistema seleccionado. Los ajustes iniciales controlan qué pantallas compatibles se omiten. Revisa el resumen si cambias las cuentas o la red.</p>
+      <ul><li>Las aplicaciones marcadas se seleccionan para su eliminación. Comprueba si harán falta Microsoft Store, funciones de voz o componentes que use el lector de pantalla.</li><li>El programa de instalación estándar utiliza el archivo de respuesta. La opción DISM aplica la imagen en Windows PE y prepara el arranque según la distribución. Para preparar el disco manualmente en modo DISM, utiliza DiskPart.</li><li>Los componentes XML personalizados y los scripts son para implementaciones preparadas. Comprueba su contenido y la fase en la que se ejecutan.</li></ul>
+    </section>
+    <section aria-labelledby="oem">
+      <h2 id="oem" tabindex="-1">Controladores, archivos y scripts OEM</h2>
+      <p>Añade controladores de Windows PE si el instalador los necesita para acceder a un disco u otro dispositivo. Indica por separado los controladores para Windows instalado. También puedes adjuntar archivos y scripts para fases concretas de la instalación.</p>
+      <p>Al crear la unidad USB se añaden estos archivos. Al guardar el XML puedes elegir otra carpeta para la estructura del medio. Con el método estándar, los archivos OEM van en <code>sources\$OEM$</code> y los controladores de Windows PE en <code>$WinPEDriver$</code>. Conserva la estructura al copiarla.</p>
+    </section>
+    <section aria-labelledby="export">
+      <h2 id="export" tabindex="-1">Resumen, archivos XML y perfiles INI</h2>
+      <p>Revisa el sistema, la edición, el modo de arranque, el plan de particiones, las cuentas y la configuración inicial. Abre la vista previa del XML. El nombre propuesto al guardar el archivo de respuesta es <code>Autounattend.xml</code>.</p>
+      <p>Guarda un perfil INI para volver a abrir las opciones en XMLator. El instalador de Windows lee el XML en la raíz del medio de instalación.</p>
+      <details><summary>Reutilizar un perfil en varios equipos</summary><p>Guarda un perfil comprobado que solicite el nombre de cuenta al exportar. Abre ese perfil en cada caso, comprueba el disco y la edición, y escribe los datos que correspondan al guardar el XML.</p></details>
+    </section>
+    <section aria-labelledby="usb">
+      <h2 id="usb" tabindex="-1">Imágenes ISO y unidades USB de arranque</h2>
+      <p>Selecciona la unidad USB y un ISO local o una fuente disponible. Con <strong>Descargar un ISO desde el sitio de Microsoft</strong>, elige la versión y el idioma. La disponibilidad depende del sistema, la arquitectura y el servicio de Microsoft. Windows 11 26H2 se ofrece para x64 y ARM64. En proszczok.pl selecciona un archivo compatible del catálogo.</p>
+      <ol><li>Antes de pulsar <strong>Crear una unidad USB de arranque</strong>, comprueba el nombre, la capacidad y el contenido. El formato borra sus datos.</li><li>Tras la confirmación, XMLator comprueba el ISO y copia los archivos de instalación, el XML y los extras. El título y la barra de progreso indican la fase.</li><li>Arranca el equipo de destino desde esa unidad en el modo elegido en el paso del disco. Responde a las preguntas que dejas para la instalación.</li></ol>
+    </section>
+    <section aria-labelledby="problems">
+      <h2 id="problems" tabindex="-1">Resolver problemas de instalación</h2>
+      <details><summary>El asistente pide una cuenta</summary><p>Añade una cuenta de administrador local o configura la cuenta en el instalador. Si quieres introducir el nombre más tarde, pide que se solicite al exportar.</p></details>
+      <details><summary>Falta una fuente de ISO o el archivo no coincide</summary><p>Comprueba la conexión, el sistema, la arquitectura y la edición. Actualiza las fuentes si la opción está disponible. También puedes elegir un ISO local compatible. El instalador detecta las ediciones de esa imagen.</p></details>
+      <details><summary>La unidad arranca pero el instalador rechaza el disco</summary><p>Comprueba la entrada UEFI o Legacy del menú de arranque y compárala con <strong>Disco y particiones</strong>. Para conservar la distribución existente, usa la selección manual.</p></details>
+      <details><summary>El instalador sigue haciendo preguntas</summary><p>Comprueba el nombre y la ubicación de <code>Autounattend.xml</code>. Las pantallas que dejas para configurar manualmente se muestran según las reglas de la versión de Windows. Consulta los registros de instalación para investigar un error.</p></details>
+    </section>
+    <section aria-labelledby="updates">
+      <h2 id="updates" tabindex="-1">Manual y actualizaciones</h2>
+      <p>El manual forma parte de XMLator. Abre <strong>Ayuda → Manual de usuario</strong> para leerlo en el idioma activo. Funciona sin conexión. Al abrirlo después de actualizar el programa, verás el manual incluido con la versión nueva.</p>
+      <p>En los ajustes puedes buscar actualizaciones y configurar la búsqueda automática. Consulta los cambios, el código y la documentación pública en el <a href="https://github.com/proszczok2002/XMLator">repositorio de XMLator en GitHub</a>.</p>
+    </section>
+  </main>
+</div>
+<footer class="wrap">
+  <p><a href="#top">Volver al inicio del manual</a></p>
+</footer>

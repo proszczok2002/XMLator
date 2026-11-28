@@ -18,11 +18,13 @@ internal sealed partial class Wizard : Form
         ("Użytkownicy i pierwsze logowanie", "Users and first sign-in"), ("Ustawienia zaawansowane", "Advanced settings"),
         ("Sterowniki, pliki i skrypty OEM", "OEM drivers, files and scripts"), ("Podsumowanie i eksport", "Review and export")
     ];
+    private const int AccountsStep = 5;
 
     private readonly InterfacePreferences preferences;
     private string UiLanguage => preferences.EffectiveLanguage;
     private bool polish => UiLanguage == "pl";
     private Button? interfaceSettingsButton;
+    private Button? addLocalAccount;
     private SetupProfile profile;
     private int step;
     private bool working;
@@ -120,6 +122,8 @@ internal sealed partial class Wizard : Form
         AddMenu(file, L("Przejdź do p&odsumowania", "Go to &review"), Keys.Control | Keys.End, () =>
         {
             Validate();
+            if (!CheckAccountStep())
+                return;
             step = Steps.Length - 1;
             ShowStep();
         });
@@ -141,6 +145,7 @@ internal sealed partial class Wizard : Form
             darkThemeItem.Checked = preferences.Theme == AppTheme.Dark;
         };
         var help = new ToolStripMenuItem(L("Pomo&c", "&Help"));
+        AddMenu(help, L("Podręcznik użytkowania", "User manual"), Keys.None, OpenManual);
         AddMenu(help, L("&Obsługa klawiaturą", "&Keyboard commands"), Keys.None, () => Info(KeyboardHelp()));
         AddMenu(help, L("&O programie", "&About"), Keys.None, ShowAbout);
         menu.Items.AddRange([file, language, view, help]);
@@ -233,6 +238,7 @@ internal sealed partial class Wizard : Form
             foreach (Control old in navigation.Controls.Cast<Control>().ToArray())
                 old.Dispose();
             interfaceSettingsButton = null;
+            addLocalAccount = null;
             heading.Text = StepHeading();
             SetHeading(heading.Text);
             var fields = new Fields();
@@ -244,7 +250,7 @@ internal sealed partial class Wizard : Form
                 case 2: EditionPage(fields); break;
                 case 3: DiskPage(fields); break;
                 case 4: RegionPage(fields); break;
-                case 5: AccountsPage(fields); break;
+                case AccountsStep: AccountsPage(fields); break;
                 case 6: AdvancedPage(fields); break;
                 case 7: MediaPage(fields); break;
                 case 8: ReviewPage(fields); break;
@@ -286,7 +292,7 @@ internal sealed partial class Wizard : Form
 
     private void ChangeStep(int delta)
     {
-        if (working)
+        if (working || delta > 0 && step == AccountsStep && !CheckAccountStep())
             return;
         step = Math.Clamp(step + delta, 0, Steps.Length - 1);
         ShowStep();
@@ -363,7 +369,8 @@ internal sealed partial class Wizard : Form
         var actions = new FlowLayoutPanel { AutoSize = true, WrapContents = true };
         interfaceSettingsButton = Fields.ActionButton(L("&Ustawienia…", "&Settings…"), () => Run(OpenInterfaceSettings));
         var support = Fields.ActionButton(L("Ws&parcie i kontakt…", "Suppor&t and contact…"), () => Run(ShowSupport));
-        actions.Controls.AddRange([interfaceSettingsButton, support]);
+        var manual = Fields.ActionButton(L("Podręcznik użytkowania", "User manual"), () => Run(OpenManual));
+        actions.Controls.AddRange([interfaceSettingsButton, support, manual]);
         f.Add(actions);
     }
 

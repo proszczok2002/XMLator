@@ -1,0 +1,107 @@
+<a class="skip" href="#main">Zum Inhalt des Handbuchs</a>
+<header id="top" tabindex="-1">
+  <div class="wrap">
+    <p class="version">@@PRODUCT@@</p>
+    <h1>@@TITLE@@</h1>
+    <p>Erstellen Sie eine Windows-Antwortdatei, prüfen Sie die Einstellungen und bereiten Sie einen Installations-USB-Datenträger vor. Die Kapitel erklären, welche Entscheidungen der Assistent übernimmt und welche Fragen später im Windows-Setup erscheinen können.</p>
+    <form class="search" role="search" hidden>
+      <label for="manual-search">Handbuch durchsuchen</label>
+      <div class="search-controls">
+        <input type="search" id="manual-search" aria-controls="main">
+        <button type="reset">Suche löschen</button>
+      </div>
+      <p id="manual-results" role="status" data-count="Passende Kapitel — {count} von {total}" data-empty="Keine passenden Kapitel. Ändern oder löschen Sie den Suchbegriff."></p>
+    </form>
+  </div>
+</header>
+<div class="wrap guide">
+  <nav aria-labelledby="contents-heading">
+    <h2 id="contents-heading">Inhaltsverzeichnis</h2>
+    <ol>
+      <li><a href="#start">Die erste Antwortdatei</a></li>
+      <li><a href="#keyboard">Tastatur und Screenreader</a></li>
+      <li><a href="#windows">Windows, Lizenz, Edition und Product Key</a></li>
+      <li><a href="#disk">Startmodus, Datenträger und Partitionen</a></li>
+      <li><a href="#region">Sprache, Region und Computername</a></li>
+      <li><a href="#accounts">Lokale Konten und erste Anmeldung</a></li>
+      <li><a href="#advanced">Erweiterte Einstellungen</a></li>
+      <li><a href="#oem">OEM-Treiber, Dateien und Skripte</a></li>
+      <li><a href="#export">Zusammenfassung, XML und INI-Profile</a></li>
+      <li><a href="#usb">ISO-Abbild und startfähiges USB-Laufwerk</a></li>
+      <li><a href="#problems">Probleme während der Installation</a></li>
+      <li><a href="#updates">Handbuch und Programmupdates</a></li>
+    </ol>
+  </nav>
+  <main id="main" tabindex="-1">
+    <section aria-labelledby="start">
+      <h2 id="start" tabindex="-1">Die erste Antwortdatei</h2>
+      <p>XMLator speichert die Installationsoptionen in <code>Autounattend.xml</code>. Das Windows-Setup liest diese Datei beim Start vom Installationsmedium. Einstellungen, die Sie zur manuellen Auswahl belassen, können während der Installation abgefragt werden.</p>
+      <ol><li>Wählen Sie die Windows-Version, die Architektur und die Edition passend zum Installationsabbild.</li><li>Wählen Sie für den ersten Versuch die manuelle Partitionierung. So können Sie den richtigen Datenträger im Setup bestimmen.</li><li>Stellen Sie Sprache, Region und die Kontoeinrichtung ein. Wenn Sie Konten im Assistenten hinzufügen, legen Sie auch ein lokales Konto mit Administratorrechten an.</li><li>Prüfen Sie die Zusammenfassung, öffnen Sie die XML-Vorschau und speichern Sie die Antwortdatei. Aus einem ISO können Sie dort auch ein startfähiges USB-Laufwerk erstellen.</li></ol>
+      <details><summary>Beispiel für einen PC mit Windows 11 Pro</summary><p>Wählen Sie Windows 11, x64, Pro und UEFI / GPT. Stellen Sie Sprache und Tastaturlayout ein. Verwenden Sie für den ersten Versuch die manuelle Datenträgerauswahl. Prüfen Sie, ob das ISO die Edition Pro enthält.</p></details>
+    </section>
+    <section aria-labelledby="keyboard">
+      <h2 id="keyboard" tabindex="-1">Tastatur und Screenreader</h2>
+      <p><kbd>Tab</kbd> und <kbd>Umschalt+Tab</kbd> wechseln das Steuerelement. Mit den Pfeiltasten wählen Sie einen Listeneintrag. Die <kbd>Leertaste</kbd> schaltet ein Kontrollkästchen um. Der Fenstertitel nennt den aktuellen Schritt. Verwenden Sie <strong>Zurück</strong> und <strong>Weiter</strong>, um den Schritt zu wechseln.</p>
+      <ul><li><kbd>Strg+S</kbd> bereitet das Speichern der XML-Datei vor. <kbd>Strg+Umschalt+S</kbd> speichert ein INI-Profil.</li><li><kbd>Strg+O</kbd> öffnet ein Profil. <kbd>Strg+Ende</kbd> wechselt nach Prüfung der Kontoeinrichtung zur Zusammenfassung.</li><li>Unter <strong>Hilfe</strong> finden Sie die <strong>Tastaturbefehle</strong> und das Handbuch. Im Browser können Sie nach Überschriften navigieren und Kapitel suchen. Klappbare Beispiele öffnen Sie mit der Leertaste oder Eingabetaste.</li></ul>
+    </section>
+    <section aria-labelledby="windows">
+      <h2 id="windows" tabindex="-1">Windows, Lizenz, Edition und Product Key</h2>
+      <p>Wählen Sie Windows für den Zielcomputer. Die meisten Intel- und AMD-PCs verwenden x64. Windows auf Arm benötigt ARM64. x86 steht für 32 Bit. Die verfügbaren Optionen hängen von der Version und Architektur ab.</p>
+      <ul><li>Legen Sie fest, ob die Lizenzbedingungen per Antwortdatei oder während der Installation akzeptiert werden.</li><li>Wählen Sie möglichst eine Edition wie Home oder Pro aus der Liste. Ein genauer Abbildname oder Index ist für ein bekanntes ISO vorgesehen.</li><li>Ein Installationsschlüssel kann die Abbildauswahl beeinflussen. Ein Aktivierungsschlüssel aktiviert das installierte System. Das Überspringen der Schlüsselabfrage oder ein Installationsschlüssel ersetzt keine Lizenz.</li></ul>
+    </section>
+    <section aria-labelledby="disk">
+      <h2 id="disk" tabindex="-1">Startmodus, Datenträger und Partitionen</h2>
+      <p>Wählen Sie zuerst den Startmodus des Installationsmediums. XMLator richtet ein von ihm erstelltes USB-Laufwerk für denselben Modus ein.</p>
+      <ul><li><strong>UEFI / GPT</strong> bietet die manuelle Auswahl, Systempartitionen mit einer großen Partition C oder Systempartitionen mit C und D. Für C und D geben Sie die Größe von C ein. D belegt den restlichen Speicherplatz.</li><li><strong>Legacy BIOS / MBR</strong> bietet die manuelle Auswahl oder eine aktive Partition C für Windows und die Startdateien auf dem ganzen Datenträger. Microsoft setzt für Windows 11 UEFI voraus.</li><li>EFI enthält die Startdateien. MSR ist für Windows reserviert. Die optionale Wiederherstellungspartition enthält WinRE. Der Partitionsplan zeigt die Reihenfolge und die Größen.</li></ul>
+      <p><strong>Ein vorgegebenes Layout löscht alle Partitionen des gewählten Datenträgers.</strong> Kontrollieren Sie seine Nummer im Windows-Setup. Verwenden Sie <strong>Manuell während der Installation auswählen</strong>, wenn Sie vorhandene Partitionen behalten oder den Datenträger erst am Zielcomputer bestimmen möchten.</p>
+      <details><summary>Beispiel für die Größe von C</summary><p>Geben Sie <code>102400</code> MiB für 100 GiB ein. <kbd>Strg+A</kbd> markiert die Zahl. <kbd>Tab</kbd> übernimmt sie. D nutzt den Platz, der nach C und den Systempartitionen frei ist.</p></details>
+    </section>
+    <section aria-labelledby="region">
+      <h2 id="region" tabindex="-1">Sprache, Region und Computername</h2>
+      <p>Die Sprache des Assistenten, die Sprache des ISO und die Einstellungen des installierten Windows sind eigene Optionen. Die Assistentensprache ändern Sie über <strong>Sprache</strong> oder die Einstellungen. Im Schritt für Sprache und Region wählen Sie die Windows-Spracheinstellungen, das Tastaturlayout und die Zeitzone.</p>
+      <p>Wählen Sie das Tastaturlayout, das bei der Eingabe von Name und Kennwort verwendet werden soll. Ein eigener Computername erleichtert die Zuordnung im Netzwerk. Bei der Standardeinstellung legt Windows den Namen fest.</p>
+    </section>
+    <section aria-labelledby="accounts">
+      <h2 id="accounts" tabindex="-1">Lokale Konten und erste Anmeldung</h2>
+      <p><strong>Nein. Konto während der Installation einrichten.</strong> überlässt die Kontoeinrichtung dem Windows-Setup. Je nach Edition und Installationsbedingungen kann Windows ein Microsoft-Konto anbieten.</p>
+      <p>Bei <strong>Ja. Konten im Assistenten hinzufügen.</strong> fügen Sie ein Konto hinzu und geben seinen Namen ein oder lassen den Namen beim Export abfragen. Mindestens ein lokales Konto benötigt Administratorrechte. Ist die Liste leer, bleibt der Assistent auf dieser Seite und setzt den Fokus auf die Schaltfläche zum Hinzufügen. Für eine spätere Namenseingabe muss das entsprechende Konto bereits in der Liste stehen.</p>
+      <ul><li>Bei manueller Anmeldung wählen Sie das Konto nach dem Setup. Die einmalige Anmeldung verwendet das erste hinzugefügte Administratorkonto. Die Kennwortregeln hängen von Windows ab.</li><li>Unterstützte Optionen für das Überspringen von Ersteinrichtungsseiten oder die Offlineeinrichtung setzen ein lokales Administratorkonto voraus. Windows Server kann außerdem ein Kennwort für das integrierte Administratorkonto anfordern.</li><li>Ein INI-Profil merkt sich die Abfragen. Kennwörter geben Sie beim Export ein. Die XML-Datei kann Kennwörter enthalten. Base64 lässt sich zurückwandeln. Schützen Sie die Antwortdatei entsprechend.</li></ul>
+    </section>
+    <section aria-labelledby="advanced">
+      <h2 id="advanced" tabindex="-1">Erweiterte Einstellungen</h2>
+      <p>Welche Optionen verfügbar sind, hängt von der Windows-Version ab. In den Einstellungen für die Ersteinrichtung können Sie unterstützte Seiten überspringen. Prüfen Sie die Zusammenfassung, wenn Sie Konten oder Netzwerkoptionen ändern.</p>
+      <ul><li>Markierte Apps sind zum Entfernen ausgewählt. Prüfen Sie, ob der Microsoft Store sowie Sprach- und Screenreader-Funktionen benötigt werden.</li><li>Das standardmäßige Windows-Setup verarbeitet die Antwortdatei. Die DISM-Option wendet das Abbild in Windows PE an und erstellt die Startdateien für das gewählte Layout. Bei manueller Vorbereitung im DISM-Modus verwenden Sie DiskPart.</li><li>Eigene XML-Komponenten und Skripte sind für vorbereitete Bereitstellungen gedacht. Prüfen Sie Inhalt und Ausführungszeitpunkt vor der Verwendung.</li></ul>
+    </section>
+    <section aria-labelledby="oem">
+      <h2 id="oem" tabindex="-1">OEM-Treiber, Dateien und Skripte</h2>
+      <p>Fügen Sie Windows-PE-Treiber hinzu, wenn das Setup sie für einen Datenträger oder ein anderes Gerät benötigt. Treiber für das installierte Windows geben Sie getrennt an. Sie können auch Dateien kopieren und Skripte in bestimmten Phasen ausführen lassen.</p>
+      <p>Beim Erstellen des USB-Laufwerks werden die benötigten Dateien hinzugefügt. Wenn Sie nur XML speichern, können Sie einen eigenen Ordner für die Medienstruktur wählen. Bei Standard-Setup kommen OEM-Dateien unter <code>sources\$OEM$</code> und Windows-PE-Treiber unter <code>$WinPEDriver$</code>. Behalten Sie diese Ordnerstruktur beim Kopieren bei.</p>
+    </section>
+    <section aria-labelledby="export">
+      <h2 id="export" tabindex="-1">Zusammenfassung, XML und INI-Profile</h2>
+      <p>Prüfen Sie Windows, Edition, Startmodus, Partitionsplan, Konten und Ersteinrichtung. Nutzen Sie die XML-Vorschau. Beim Speichern der Antwortdatei schlägt XMLator den Namen <code>Autounattend.xml</code> vor.</p>
+      <p>Speichern Sie ein INI-Profil, um die Einstellungen erneut im Assistenten zu öffnen. Das Windows-Setup liest die XML-Datei aus dem Stammordner des Installationsmediums.</p>
+      <details><summary>Ein Profil für mehrere Rechner</summary><p>Speichern Sie ein geprüftes Profil mit der Option, den Kontonamen beim Export abzufragen. Öffnen Sie es für jeden Rechner, prüfen Sie Datenträger und Edition und geben Sie die passenden Kontodaten beim Speichern ein.</p></details>
+    </section>
+    <section aria-labelledby="usb">
+      <h2 id="usb" tabindex="-1">ISO-Abbild und startfähiges USB-Laufwerk</h2>
+      <p>Wählen Sie das USB-Gerät und geben Sie ein vorhandenes ISO an oder wählen Sie eine verfügbare Downloadquelle. Bei <strong>ISO von Microsoft herunterladen</strong> wählen Sie Version und Sprache. Das Angebot hängt von Windows, der Architektur und dem Microsoft-Dienst ab. Windows 11 26H2 wird für x64 und ARM64 angeboten. Bei proszczok.pl wählen Sie eine passende Datei aus dem Katalog.</p>
+      <ol><li>Prüfen Sie Name, Kapazität und Inhalt, bevor Sie <strong>Startfähiges USB-Laufwerk erstellen</strong> wählen. Beim Formatieren werden die Daten auf dem USB-Laufwerk gelöscht.</li><li>Nach der Bestätigung prüft XMLator das Abbild und kopiert Installationsdateien, Antwortdatei und Zusätze. Fenstertitel und Fortschrittsanzeige nennen die Phase.</li><li>Starten Sie den Zielcomputer im gewählten UEFI- oder Legacy-Modus vom USB-Laufwerk. Beantworten Sie die Fragen, die Sie zur manuellen Auswahl belassen haben.</li></ol>
+    </section>
+    <section aria-labelledby="problems">
+      <h2 id="problems" tabindex="-1">Probleme während der Installation</h2>
+      <details><summary>Der Assistent verlangt ein Konto</summary><p>Fügen Sie ein lokales Administratorkonto hinzu oder wählen Sie die Kontoeinrichtung im Setup. Einen späteren Namen geben Sie über die Abfrage beim Export an.</p></details>
+      <details><summary>Eine ISO-Quelle fehlt oder das Abbild passt nicht</summary><p>Prüfen Sie Internetverbindung, Windows-Version, Architektur und Edition. Aktualisieren Sie die ISO-Quellen, wenn die Option angeboten wird. Sie können ein passendes lokales ISO auswählen. Das Setup erkennt die Editionen im verwendeten Abbild.</p></details>
+      <details><summary>Das USB-Laufwerk startet, das Setup lehnt die Partitionierung ab</summary><p>Vergleichen Sie den UEFI- oder Legacy-Eintrag im Startmenü des Computers mit dem Schritt <strong>Datenträger und Partitionen</strong>. Wählen Sie manuell, um vorhandene Partitionen zu erhalten.</p></details>
+      <details><summary>Das Setup zeigt weiterhin Fragen</summary><p>Prüfen Sie den Namen und Speicherort von <code>Autounattend.xml</code>. Offene Einstellungen werden nach den Regeln der gewählten Windows-Version abgefragt. Die Setup-Protokolle helfen bei der Fehlersuche.</p></details>
+    </section>
+    <section aria-labelledby="updates">
+      <h2 id="updates" tabindex="-1">Handbuch und Programmupdates</h2>
+      <p>Das Handbuch gehört zum Programm. Öffnen Sie es über <strong>Hilfe → Benutzerhandbuch</strong> in der aktuellen Sprache. Es funktioniert offline. Wenn Sie das Handbuch nach einem Programmupdate öffnen, erhalten Sie die mit dieser Version gelieferte Fassung.</p>
+      <p>In den Einstellungen können Sie nach Updates suchen und die automatische Suche festlegen. Änderungen, Quellcode und öffentliche Dokumentation stehen im <a href="https://github.com/proszczok2002/XMLator">XMLator-Repository auf GitHub</a>.</p>
+    </section>
+  </main>
+</div>
+<footer class="wrap">
+  <p><a href="#top">Zum Anfang des Handbuchs</a></p>
+</footer>

@@ -193,6 +193,16 @@ internal static class Checks
             Task.Run(() => SelectionAudit.ReleaseSettings(settingsExe, languages, settingsWork)).GetAwaiter().GetResult();
             return;
         }
+        if (args is ["--account-navigation-ui", var accountExe, var accountLanguages, var accountWork])
+        {
+            Task.Run(() => SelectionAudit.AccountNavigation(accountExe, accountLanguages, accountWork)).GetAwaiter().GetResult();
+            return;
+        }
+        if (args is ["--export-manual-audit", var manualWork])
+        {
+            ManualAudit.Export(manualWork);
+            return;
+        }
         if (args is ["--dark-theme-ui", var themeExe, var themeWork])
         {
             Task.Run(() => SelectionAudit.DarkTheme(themeExe, themeWork)).GetAwaiter().GetResult();
@@ -231,6 +241,11 @@ internal static class Checks
         if (args is ["--microsoft-resolve", var versionToResolve, var releaseToResolve, var architectureToResolve, var cultureToResolve])
         {
             MicrosoftIsoAudit.Resolve(versionToResolve, releaseToResolve, architectureToResolve, cultureToResolve);
+            return;
+        }
+        if (args is ["--microsoft-save", var versionToSave, var releaseToSave, var architectureToSave, var cultureToSave, var isoOutput])
+        {
+            MicrosoftIsoAudit.Resolve(versionToSave, releaseToSave, architectureToSave, cultureToSave, isoOutput);
             return;
         }
         if (args is ["--nvda-audit"])

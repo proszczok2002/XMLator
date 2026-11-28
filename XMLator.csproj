@@ -5,8 +5,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.0.6</Version>
-    <InformationalVersion>1.06</InformationalVersion>
+    <Version>1.0.7</Version>
+    <InformationalVersion>1.07</InformationalVersion>
     <ApplicationIcon>assets\XMLator.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AllowedReferenceRelatedFileExtensions>.pdb</AllowedReferenceRelatedFileExtensions>
@@ -19,6 +19,7 @@
     <EmbeddedResource Include="assets\ApplyUpdate.ps1" LogicalName="XMLator.ApplyUpdate.ps1" />
     <EmbeddedResource Include="assets\UsbDiagnosticKeys.txt" LogicalName="XMLator.UsbDiagnosticKeys.txt" />
     <EmbeddedResource Include="assets\Translations\*.json" LogicalName="XMLator.Translations.%(Filename)%(Extension)" />
+    <EmbeddedResource Include="assets\Manual\*.html" LogicalName="XMLator.Manual.%(Filename)%(Extension)" />
     <EmbeddedResource Include="THIRD-PARTY-NOTICES.txt" LogicalName="XMLator.ThirdPartyNotices.txt" />
     <PackageReference Include="DiscUtils.Udf" Version="0.16.13" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" ExcludeAssets="build;buildTransitive" GeneratePathProperty="true" />

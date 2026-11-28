@@ -94,7 +94,11 @@ internal static partial class SelectionAudit
                         }
                         if (!SpinWait.SpinUntil(() => !IsWindow(contactHandle) && support.Current.HasKeyboardFocus, 3500))
                             throw new InvalidOperationException("Escape did not close Support and return focus to its button.");
-                        Console.WriteLine($"{locale} {theme}: versioned title, accessible settings, themed support buttons without URLs, Tab and Escape.");
+                        var manualButton = Named(window, ControlType.Button, Local("Podręcznik użytkowania", "User manual"));
+                        PostKey(support, Keys.Tab);
+                        if (!SpinWait.SpinUntil(() => manualButton.Current.HasKeyboardFocus, 2500))
+                            throw new InvalidOperationException("Tab did not reach the user manual button.");
+                        Console.WriteLine($"{locale} {theme}: versioned title, settings, support, Tab and Escape, user manual button.");
                     }
                     finally { CloseReleaseFixture(process); }
                 }

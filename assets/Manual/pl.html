@@ -1,0 +1,109 @@
+<a class="skip" href="#main">Przejdź do treści podręcznika</a>
+<header id="top" tabindex="-1">
+  <div class="wrap">
+    <p class="version">@@PRODUCT@@</p>
+    <h1>@@TITLE@@</h1>
+    <p>Przygotuj plik odpowiedzi Windows, przetestuj ustawienia i zrób pendrive instalacyjny. Rozdziały prowadzą przez kreator i wyjaśniają, co zobaczysz później w instalatorze.</p>
+    <form class="search" role="search" hidden>
+      <label for="manual-search">Szukaj w podręczniku</label>
+      <div class="search-controls">
+        <input type="search" id="manual-search" aria-controls="main">
+        <button type="reset">Wyczyść wyszukiwanie</button>
+      </div>
+      <p id="manual-results" role="status" data-count="Pasujące rozdziały — {count} z {total}" data-empty="Brak pasujących rozdziałów. Zmień hasło lub wyczyść wyszukiwanie."></p>
+    </form>
+  </div>
+</header>
+<div class="wrap guide">
+  <nav aria-labelledby="contents-heading">
+    <h2 id="contents-heading">Spis treści</h2>
+    <ol>
+      <li><a href="#start">Pierwszy plik odpowiedzi</a></li>
+      <li><a href="#keyboard">Klawiatura i czytnik ekranu</a></li>
+      <li><a href="#windows">Windows, licencja, edycja i klucz</a></li>
+      <li><a href="#disk">Rozruch, dysk i partycje</a></li>
+      <li><a href="#region">Język, region i komputer</a></li>
+      <li><a href="#accounts">Konta lokalne i pierwsze logowanie</a></li>
+      <li><a href="#advanced">Ustawienia zaawansowane</a></li>
+      <li><a href="#oem">Sterowniki, pliki i skrypty OEM</a></li>
+      <li><a href="#export">Podsumowanie, XML i profile</a></li>
+      <li><a href="#usb">Obraz ISO i pendrive instalacyjny</a></li>
+      <li><a href="#problems">Gdy instalacja się zatrzyma</a></li>
+      <li><a href="#updates">Podręcznik i aktualizacje</a></li>
+    </ol>
+  </nav>
+  <main id="main" tabindex="-1">
+    <section aria-labelledby="start">
+      <h2 id="start" tabindex="-1">Pierwszy plik odpowiedzi</h2>
+      <p>XMLator zapisuje wybory instalacyjne w pliku <code>Autounattend.xml</code>. Instalator Windows odczytuje go podczas uruchamiania z nośnika. Wybory zostawione do ręcznej konfiguracji nadal mogą wymagać odpowiedzi.</p>
+      <ol><li>Wybierz system, architekturę i edycję zgodne z obrazem Windows, którego użyjesz.</li><li>Przy pierwszej próbie wybierz ręczne partycjonowanie, żeby samodzielnie wskazać dysk w instalatorze.</li><li>Ustaw język, region i sposób tworzenia konta. Jeśli wybierzesz dodawanie kont w kreatorze, dodaj lokalnego administratora.</li><li>W podsumowaniu podejrzyj XML i zapisz go. W tym samym kroku możesz użyć ISO do przygotowania pendrive’a.</li></ol>
+      <details><summary>Przykład dla typowego komputera z Windows 11 Pro</summary><p>Wybierz Windows 11, x64, edycję Pro oraz UEFI / GPT. Ustaw język polski i klawiaturę Polski (programisty). Zacznij od ręcznego wyboru dysku i sprawdź, czy wybrane ISO zawiera edycję Pro.</p></details>
+    </section>
+    <section aria-labelledby="keyboard">
+      <h2 id="keyboard" tabindex="-1">Klawiatura i czytnik ekranu</h2>
+      <p><kbd>Tab</kbd> i <kbd>Shift+Tab</kbd> przechodzą między kontrolkami. Na liście użyj strzałek, a pole wyboru przełączysz klawiszem <kbd>Spacja</kbd>. Tytuł okna podaje bieżący krok. Przyciski <strong>Wstecz</strong> i <strong>Dalej</strong> zmieniają krok.</p>
+      <ul><li><kbd>Ctrl+S</kbd> przygotowuje zapis XML, a <kbd>Ctrl+Shift+S</kbd> zapis profilu INI.</li><li><kbd>Ctrl+O</kbd> otwiera zapisany profil. <kbd>Ctrl+End</kbd> prowadzi do podsumowania po sprawdzeniu ustawień kont.</li><li>W menu <strong>Pomoc</strong> znajdziesz <strong>Obsługę klawiaturą</strong> i ten podręcznik. W przeglądarce przechodź po nagłówkach albo użyj pola wyszukiwania. Wciśnij spację lub Enter na tytule zwiniętego przykładu, żeby go rozwinąć.</li></ul>
+    </section>
+    <section aria-labelledby="windows">
+      <h2 id="windows" tabindex="-1">Windows, licencja, edycja i klucz</h2>
+      <p>Wskaż wersję docelową. Typowe komputery Intel i AMD używają x64, urządzenia z systemem Windows na Arm potrzebują ARM64. x86 oznacza wersję 32-bitową. Dostępne opcje zależą od wybranego systemu i architektury.</p>
+      <ul><li>Przy licencji zdecyduj, czy zaakceptować warunki w pliku odpowiedzi, czy zrobić to podczas instalacji.</li><li>Najprościej wybrać edycję z listy, na przykład Home lub Pro. Własną nazwę albo indeks obrazu podawaj tylko wtedy, gdy znasz zawartość konkretnego ISO.</li><li>Klucz instalacyjny wpływa na wybór obrazu. Klucz aktywacyjny służy do aktywacji zainstalowanego systemu. Pominięcie pytania o klucz lub użycie klucza instalacyjnego nie zapewnia licencji.</li></ul>
+    </section>
+    <section aria-labelledby="disk">
+      <h2 id="disk" tabindex="-1">Rozruch, dysk i partycje</h2>
+      <p>Najpierw ustaw tryb rozruchu. Pendrive przygotowany przez XMLatora użyje tego samego trybu.</p>
+      <ul><li><strong>UEFI / GPT</strong> udostępnia ręczny wybór, partycje pomocnicze z jedną dużą partycją C albo partycje pomocnicze z C i D. Przy C i D podajesz rozmiar C. D zajmuje miejsce, które pozostaje po utworzeniu pozostałych partycji.</li>
+      <li><strong>Legacy BIOS / MBR</strong> udostępnia ręczny wybór albo jedną aktywną partycję C na całym dysku. C zawiera Windows i pliki rozruchowe. Wymagania Microsoftu dla Windows 11 obejmują UEFI.</li>
+      <li>EFI przechowuje pliki startowe, MSR rezerwuje miejsce dla Windows, a opcjonalne WinRE przechowuje środowisko odzyskiwania. Plan partycji pokazuje kolejność i rozmiary.</li></ul>
+      <p><strong>Gotowy układ usuwa wszystkie partycje na wskazanym dysku.</strong> Sprawdź numer dysku w instalatorze. Jeśli chcesz zachować istniejące partycje albo dopiero rozpoznasz dysk na docelowym komputerze, wybierz <strong>Ręcznie w instalatorze</strong>.</p>
+      <details><summary>Przykład rozmiaru partycji C</summary><p>Wpisz <code>102400</code> w polu rozmiaru C w MiB, aby przeznaczyć 100 GiB na C. <kbd>Ctrl+A</kbd> zaznacza liczbę, <kbd>Tab</kbd> stosuje wartość. D dostaje pozostałe miejsce po partycjach pomocniczych i C.</p></details>
+    </section>
+    <section aria-labelledby="region">
+      <h2 id="region" tabindex="-1">Język, region i komputer</h2>
+      <p>Rozróżnij język kreatora, język ISO i ustawienia instalowanego Windows. Język kreatora zmieniasz w menu <strong>Język</strong> lub w <strong>Ustawieniach</strong>. W kroku języka i regionu wybierasz ustawienia systemu, klawiaturę i strefę czasową.</p>
+      <p>Wybierz układ klawiatury odpowiedni dla osoby, która będzie wpisywać nazwę i hasło podczas instalacji. Własna nazwa komputera pomaga odróżnić go w sieci. Pozostaw ustawienie domyślne, jeśli nazwę ma ustalić Windows.</p>
+    </section>
+    <section aria-labelledby="accounts">
+      <h2 id="accounts" tabindex="-1">Konta lokalne i pierwsze logowanie</h2>
+      <p><strong>Nie. Skonfiguruj konto w instalatorze.</strong> pozwala Windows przeprowadzić konfigurację konta zgodnie z zasadami wybranej edycji. Instalator może zaproponować konto Microsoft.</p>
+      <p>Przy <strong>Tak. Dodaj konta w kreatorze.</strong> użyj <strong>Dodaj konto…</strong> i podaj nazwę lub wybierz pytanie o nią przy eksporcie. Na liście musi być co najmniej jedno konto lokalne z uprawnieniami administratora. Przy pustej liście kreator zatrzyma przejście dalej i ustawi fokus na dodawaniu konta. Jeśli chcesz podać nazwę dopiero przy zapisie XML, nadal dodaj konto z opcją pytania o nazwę.</p>
+      <ul><li>Logowanie ręczne pozwala wybrać konto po instalacji. Jednorazowe logowanie używa pierwszego dodanego administratora. Windows może wymagać hasła zgodnie z zasadami wersji.</li><li>Obsługiwane warianty pomijania ekranów pierwszej konfiguracji oraz konfiguracji offline wymagają lokalnego administratora. Windows Server może też wymagać osobnego hasła wbudowanego Administratora.</li><li>Profil INI zapamiętuje pytania o dane, a hasła wpisujesz przy eksporcie. Plik XML może zawierać hasła. Base64 można odczytać, więc przechowuj ten plik jak dane logowania.</li></ul>
+    </section>
+    <section aria-labelledby="advanced">
+      <h2 id="advanced" tabindex="-1">Ustawienia zaawansowane</h2>
+      <p>Opcje zależą od wybranego Windows. W ustawieniach pierwszej konfiguracji ustalisz, które ekrany ma obsłużyć Windows i czy pominąć obsługiwane pytania. Sprawdź podsumowanie po zmianie ustawień konta lub sieci.</p>
+      <ul><li>W oknie aplikacji zaznaczone pozycje są przeznaczone do usunięcia. Oceń, czy system będzie potrzebować Microsoft Store, funkcji mowy lub składników używanych przez czytnik ekranu.</li><li>Standardowy Windows Setup stosuje plik odpowiedzi. Alternatywny DISM nakłada obraz w Windows PE i przygotowuje rozruch dla wybranego układu. Przy ręcznym wyborze dysku w DISM użyj DiskPart.</li><li>Własne komponenty XML i skrypty są dla przygotowanych konfiguracji. Sprawdź skrypt i fazę uruchomienia przed użyciem na docelowym komputerze.</li></ul>
+    </section>
+    <section aria-labelledby="oem">
+      <h2 id="oem" tabindex="-1">Sterowniki, pliki i skrypty OEM</h2>
+      <p>Dodaj sterowniki Windows PE, jeśli instalator musi dzięki nim zobaczyć dysk lub urządzenie. Sterowniki instalowanego Windows wskaż osobno. Możesz dołączyć też pliki do skopiowania i skrypty uruchamiane w wybranym etapie.</p>
+      <p>Tworzenie pendrive’a dołącza wymagane pliki. Przy zapisie XML możesz wybrać dodatkowy folder ze strukturą nośnika. W standardowym Windows Setup pliki OEM trafiają do <code>sources\$OEM$</code>, a osobne sterowniki WinPE do <code>$WinPEDriver$</code>. Zostaw utworzoną strukturę katalogów przy kopiowaniu na nośnik.</p>
+    </section>
+    <section aria-labelledby="export">
+      <h2 id="export" tabindex="-1">Podsumowanie, XML i profile</h2>
+      <p>Przejrzyj system, edycję, tryb rozruchu, plan dysku, konto i ustawienia pierwszej konfiguracji. Przycisk <strong>Podejrzyj plik XML</strong> pokazuje plik jeszcze przed zapisem. <strong>Zapisz XML</strong> proponuje nazwę <code>Autounattend.xml</code>.</p>
+      <p><strong>Zapisz profil INI</strong> zachowuje wybory do ponownego użycia w XMLatorze. Przy następnym uruchomieniu wybierz <strong>Otwórz zapisany profil</strong>. Plik INI służy do edycji ustawień w kreatorze. Instalator Windows używa XML umieszczonego w katalogu głównym nośnika.</p>
+      <details><summary>Ten sam profil dla kilku komputerów</summary><p>Zapisz sprawdzony profil z pytaniem o nazwę konta przy eksporcie. Dla każdego komputera otwórz profil, sprawdź docelowy dysk i edycję, a przy zapisie wpisz dane właściwego konta.</p></details>
+    </section>
+    <section aria-labelledby="usb">
+      <h2 id="usb" tabindex="-1">Obraz ISO i pendrive instalacyjny</h2>
+      <p>Wybierz urządzenie USB, a następnie wskaż istniejący obraz ISO albo wybierz dostępne źródło pobierania. Przy źródle <strong>Pobierz ISO z Microsoftu</strong> wybierasz wersję i język. Dostępność zależy od wybranego systemu, architektury i odpowiedzi Microsoftu. Windows 11 26H2 jest oferowany dla x64 i ARM64. Przy proszczok.pl wybierasz pasujący plik z katalogu.</p>
+      <ol><li>Zanim klikniesz <strong>Utwórz bootowalny pendrive</strong>, sprawdź nazwę, pojemność i zawartość urządzenia. Formatowanie usuwa z niego dane.</li><li>Po potwierdzeniu XMLator sprawdza obraz, kopiuje składniki instalacji, XML i dodatki. Tytuł okna i pasek postępu pokazują etap.</li><li>Uruchom komputer z gotowego pendrive’a w trybie zgodnym z krokiem dysku. Przy ustawieniach ręcznych odpowiadaj na ekrany instalatora.</li></ol>
+    </section>
+    <section aria-labelledby="problems">
+      <h2 id="problems" tabindex="-1">Gdy instalacja się zatrzyma</h2>
+      <details><summary>Kreator prosi o konto</summary><p>Dodaj lokalnego administratora albo wybierz tworzenie konta w instalatorze. Do pozostawienia nazwy na później służy pytanie przy eksporcie.</p></details>
+      <details><summary>Zniknęło źródło ISO lub obraz nie pasuje</summary><p>Sprawdź połączenie, system, architekturę i edycję. Użyj odświeżenia źródeł ISO, jeśli jest dostępne. Możesz też samodzielnie wskazać zgodny lokalny obraz. Instalator wykryje dostępne edycje z wybranego obrazu.</p></details>
+      <details><summary>Pendrive się uruchamia, ale instalator odrzuca układ dysku</summary><p>Sprawdź w menu rozruchu, czy wybrałeś pozycję UEFI czy Legacy. Porównaj ją z krokiem <strong>Dysk i partycje</strong>. Do zachowania istniejącej konfiguracji wybierz ręczne partycjonowanie.</p></details>
+      <details><summary>Instalator nadal pokazuje pytania</summary><p>Sprawdź nazwę i położenie <code>Autounattend.xml</code>. Ekrany pozostawione do konfiguracji pojawiają się zgodnie z zasadami wersji Windows. Informacje o przebiegu instalacji można znaleźć w dziennikach Windows Setup.</p></details>
+    </section>
+    <section aria-labelledby="updates">
+      <h2 id="updates" tabindex="-1">Podręcznik i aktualizacje</h2>
+      <p>Podręcznik jest częścią programu. Każde otwarcie w <strong>Pomoc → Podręcznik użytkowania</strong> wykorzystuje bieżący język XMLatora. Strona działa offline, a po aktualizacji programu przy kolejnym otwarciu dostaniesz treść z nowej wersji.</p>
+      <p>W ustawieniach możesz sprawdzić aktualizacje i ustawić ich automatyczne sprawdzanie. Opisy zmian, źródła oraz publiczna dokumentacja są w <a href="https://github.com/proszczok2002/XMLator">repozytorium XMLatora na GitHubie</a>.</p>
+    </section>
+  </main>
+</div>
+<footer class="wrap">
+  <p><a href="#top">Wróć na początek podręcznika</a></p>
+</footer>
